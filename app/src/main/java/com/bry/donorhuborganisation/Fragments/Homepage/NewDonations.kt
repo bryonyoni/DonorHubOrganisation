@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bry.donorhuborganisation.Constants
 import com.bry.donorhuborganisation.Model.Donation
+import com.bry.donorhuborganisation.Model.Organisation
 import com.bry.donorhuborganisation.R
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.StorageReference
@@ -27,8 +28,11 @@ class NewDonations : Fragment() {
     private val ARG_PARAM1 = "param1"
     private val ARG_PARAM2 = "param2"
     private val ARG_DONATIONS = "ARG_DONATIONS"
-    private lateinit var listener: NewDonationsInterface
+    private val ARG_ORGANISATION = "ARG_ORGANISATION"
     private lateinit var donations: ArrayList<Donation>
+    private lateinit var the_organisation: Organisation
+    private lateinit var listener: NewDonationsInterface
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,6 +40,7 @@ class NewDonations : Fragment() {
             param1 = it.getString(ARG_PARAM1)
             param2 = it.getString(ARG_PARAM2)
             donations = Gson().fromJson(it.getString(ARG_DONATIONS), Donation.donation_list::class.java).donation_list
+            the_organisation = Gson().fromJson(it.getString(ARG_ORGANISATION), Organisation::class.java)
         }
     }
 
@@ -53,10 +58,14 @@ class NewDonations : Fragment() {
         // Inflate the layout for this fragment
         val va = inflater.inflate(R.layout.fragment_new_donations, container, false)
         val my_donations_recyclerview: RecyclerView = va.findViewById(R.id.my_donations_recyclerview)
-
+        val add_driver_layout: RelativeLayout = va.findViewById(R.id.add_driver_layout)
 
         my_donations_recyclerview.adapter = myDonationsListAdapter()
         my_donations_recyclerview.layoutManager = LinearLayoutManager(context)
+
+        add_driver_layout.setOnClickListener {
+            listener.whenNewDonationAddMember()
+        }
 
         return va
     }
@@ -130,12 +139,13 @@ class NewDonations : Fragment() {
     companion object {
 
         @JvmStatic
-        fun newInstance(param1: String, param2: String, donations: String) =
+        fun newInstance(param1: String, param2: String, donations: String, organisation: String) =
             NewDonations().apply {
                 arguments = Bundle().apply {
                     putString(ARG_PARAM1, param1)
                     putString(ARG_PARAM2, param2)
                     putString(ARG_DONATIONS, donations)
+                    putString(ARG_ORGANISATION,organisation)
                 }
             }
     }
@@ -143,5 +153,6 @@ class NewDonations : Fragment() {
 
     interface NewDonationsInterface{
         fun whenNewDonationViewDonation(donation: Donation)
+        fun whenNewDonationAddMember()
     }
 }

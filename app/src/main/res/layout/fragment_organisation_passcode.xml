@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".Fragments.Homepage.NewDonations">
+    tools:context=".Fragments.Homepage.OrganisationPasscode">
 
     <RelativeLayout
         android:layout_width="match_parent"
@@ -30,10 +30,40 @@
                     android:textColor="@color/colorAccent"
                     android:layout_centerVertical="true"
                     android:layout_height="wrap_content"
-                    android:text="My Donations" />
+                    android:text="Organisation passcode" />
+
+            </RelativeLayout>
+
+            <TextView
+                android:id="@+id/intro"
+                android:layout_width="wrap_content"
+                android:layout_marginTop="5dp"
+                android:textSize="15sp"
+                android:layout_height="wrap_content"
+                android:text="Enter the organisations passcode to continue" />
+
+
+            <EditText
+                android:id="@+id/PasswordEditText"
+                android:layout_marginTop="20dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingLeft="20dp"
+                android:textSize="16sp"
+                android:textColorHint="@color/hint_color"
+                android:paddingRight="20dp"
+                android:paddingBottom="15dp"
+                android:ems="10"
+                android:inputType="textPassword"
+                android:hint="Password" />
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_marginTop="30dp"
+                android:layout_height="wrap_content">
 
                 <RelativeLayout
-                    android:id="@+id/add_driver_layout"
+                    android:id="@+id/continue_layout"
                     android:layout_width="wrap_content"
                     android:layout_alignParentEnd="true"
                     android:paddingBottom="5dp"
@@ -52,7 +82,7 @@
                             android:layout_gravity="center_vertical"
                             android:textColor="@color/colorPrimary"
                             android:layout_height="wrap_content"
-                            android:text="Add Member" />
+                            android:text="Continue" />
 
 
                         <ImageView
@@ -68,21 +98,6 @@
                 </RelativeLayout>
 
             </RelativeLayout>
-
-            <TextView
-                android:id="@+id/intro"
-                android:layout_width="wrap_content"
-                android:layout_marginTop="5dp"
-                android:textSize="15sp"
-                android:layout_height="wrap_content"
-                android:text="Your donation requests will be seen here." />
-
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/my_donations_recyclerview"
-                android:layout_marginTop="20dp"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"/>
 
         </LinearLayout>
 

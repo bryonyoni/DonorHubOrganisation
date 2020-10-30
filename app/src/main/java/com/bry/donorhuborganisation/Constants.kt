@@ -21,6 +21,7 @@ class Constants{
     val vib_time: Long = 20
     val local_image = "local_image"
     val donation_data = "donation_data"
+    val otp_expiration_time: Long = 1000*60
 
 
     fun getCurrency(country_code: String):String{
