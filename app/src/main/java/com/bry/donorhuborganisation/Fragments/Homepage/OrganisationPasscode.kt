@@ -8,7 +8,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.RelativeLayout
-import com.bry.donorhuborganisation.Fragments.Authentication.SignIn
 import com.bry.donorhuborganisation.Model.Organisation
 import com.bry.donorhuborganisation.R
 import com.google.gson.Gson
@@ -20,7 +19,7 @@ class OrganisationPasscode : Fragment() {
     private var param2: String? = null
     private val ARG_PARAM1 = "param1"
     private val ARG_PARAM2 = "param2"
-    private lateinit var listener: OrganisationPasscode
+    private lateinit var listener: OrganisationPasscodeInterface
     private val ARG_ORGANISATION = "ARG_ORGANISATION"
     private lateinit var the_organisation: Organisation
 
@@ -35,7 +34,7 @@ class OrganisationPasscode : Fragment() {
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
-        if(context is OrganisationPasscode){
+        if(context is OrganisationPasscodeInterface){
             listener = context
         }
     }
@@ -57,7 +56,7 @@ class OrganisationPasscode : Fragment() {
             if(code.equals("")){
                 PasswordEditText.error = "Type something"
             }else{
-                listener.onOrganisationPasscodeSubmitPasscode(code)
+                listener.onOrganisationPasscodeSubmitPasscode(code,the_organisation)
             }
         }
 
@@ -80,8 +79,8 @@ class OrganisationPasscode : Fragment() {
             }
     }
 
-    interface OrganisationPasscode{
-        fun onOrganisationPasscodeSubmitPasscode(code: String)
+    interface OrganisationPasscodeInterface{
+        fun onOrganisationPasscodeSubmitPasscode(code: String, organisation: Organisation)
     }
 
 }

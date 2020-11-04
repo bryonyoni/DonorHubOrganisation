@@ -39,7 +39,7 @@
                 android:layout_width="match_parent"
                 android:layout_marginTop="5dp"
                 android:textSize="15sp"
-                android:text="Pick the organisation you work with."
+                android:text="Pick the organisation to work in."
                 android:layout_height="wrap_content"/>
 
             <androidx.recyclerview.widget.RecyclerView

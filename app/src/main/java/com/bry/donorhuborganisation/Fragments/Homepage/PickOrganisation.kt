@@ -10,6 +10,7 @@ import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.bry.donorhuborganisation.Model.Donation
 import com.bry.donorhuborganisation.Model.Organisation
 import com.bry.donorhuborganisation.R
 import com.google.gson.Gson
@@ -36,6 +37,8 @@ class PickOrganisation : Fragment() {
         }
     }
 
+    var when_data_updated: (organisations: ArrayList<Organisation>) -> Unit = {}
+
     override fun onAttach(context: Context) {
         super.onAttach(context)
         if(context is PickOrganisationInterface){
@@ -54,6 +57,11 @@ class PickOrganisation : Fragment() {
 
         organisations_recyclerview.adapter = myOrganisationsListAdapter()
         organisations_recyclerview.layoutManager = LinearLayoutManager(context)
+
+        when_data_updated = {
+            organisations = it
+            organisations_recyclerview.adapter?.notifyDataSetChanged()
+        }
 
         return va
     }

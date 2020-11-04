@@ -11,6 +11,7 @@ import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.bry.donorhuborganisation.Constants
 import com.bry.donorhuborganisation.Model.Donation
 import com.bry.donorhuborganisation.Model.Organisation
@@ -44,6 +45,8 @@ class NewDonations : Fragment() {
         }
     }
 
+    var when_data_updated: (donations: ArrayList<Donation>) -> Unit = {}
+
     override fun onAttach(context: Context) {
         super.onAttach(context)
         if(context is NewDonationsInterface){
@@ -59,12 +62,24 @@ class NewDonations : Fragment() {
         val va = inflater.inflate(R.layout.fragment_new_donations, container, false)
         val my_donations_recyclerview: RecyclerView = va.findViewById(R.id.my_donations_recyclerview)
         val add_driver_layout: RelativeLayout = va.findViewById(R.id.add_driver_layout)
+        val swipeContainer: SwipeRefreshLayout = va.findViewById(R.id.swipeContainer)
 
         my_donations_recyclerview.adapter = myDonationsListAdapter()
         my_donations_recyclerview.layoutManager = LinearLayoutManager(context)
 
         add_driver_layout.setOnClickListener {
-            listener.whenNewDonationAddMember()
+        }
+
+        swipeContainer.setOnRefreshListener(object : SwipeRefreshLayout.OnRefreshListener {
+            override fun onRefresh() {
+                listener.whenReloadEverything()
+            }
+        })
+
+        when_data_updated = {
+            donations = it
+            my_donations_recyclerview.adapter?.notifyDataSetChanged()
+            swipeContainer.setRefreshing(false)
         }
 
         return va
@@ -85,7 +100,7 @@ class NewDonations : Fragment() {
             viewHolder.creation_time.text = Constants().construct_elapsed_time(donation.creation_time)
 
             viewHolder.view_donation_relative.setOnClickListener {
-                listener.whenNewDonationViewDonation(donation)
+                listener.whenNewDonationViewDonation(donation, the_organisation)
             }
 
             viewHolder.donation_images.adapter = ImageListAdapter(donation)
@@ -152,7 +167,7 @@ class NewDonations : Fragment() {
 
 
     interface NewDonationsInterface{
-        fun whenNewDonationViewDonation(donation: Donation)
-        fun whenNewDonationAddMember()
+        fun whenNewDonationViewDonation(donation: Donation, organisation: Organisation)
+        fun whenReloadEverything()
     }
 }

@@ -6,10 +6,7 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.RelativeLayout
-import android.widget.Switch
-import android.widget.TextView
+import android.widget.*
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bry.donorhuborganisation.Constants
@@ -61,7 +58,7 @@ class ViewDonation : Fragment() {
         val donation_images_recyclerview: RecyclerView = va.findViewById(R.id.donation_images_recyclerview)
         val schedule_relative: RelativeLayout = va.findViewById(R.id.schedule_relative)
         val finish_relative: RelativeLayout = va.findViewById(R.id.finish_relative)
-        val share_location_layout: RelativeLayout = va.findViewById(R.id.share_location_layout)
+        val share_location_layout: LinearLayout = va.findViewById(R.id.share_location_layout)
         val share_location_switch: Switch = va.findViewById(R.id.share_location_switch)
 
         donation_desc.text = donation.description
@@ -80,6 +77,9 @@ class ViewDonation : Fragment() {
             listener.whenFinishDonationPickupClicked(donation,organisation)
         }
 
+        share_location_switch.setOnCheckedChangeListener { buttonView, isChecked ->
+            listener.whenFinishDonationShareLocation(donation,organisation,isChecked)
+        }
 
         return va
     }
@@ -129,5 +129,6 @@ class ViewDonation : Fragment() {
     interface ViewDonationInterface{
         fun whenScheduleDonationPickupClicked(donation: Donation, organisation: Organisation)
         fun whenFinishDonationPickupClicked(donation: Donation, organisation: Organisation)
+        fun whenFinishDonationShareLocation(donation: Donation, organisation: Organisation, isToShareLoc: Boolean)
     }
 }

@@ -11,10 +11,12 @@ import android.util.Base64
 import android.util.Log
 import android.view.animation.LinearInterpolator
 import android.widget.ImageView
+import com.bry.donorhuborganisation.Model.Number
 import com.google.firebase.storage.StorageReference
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.io.ByteArrayOutputStream
+import java.io.Serializable
 import java.util.HashMap
 
 class Constants{
@@ -22,6 +24,10 @@ class Constants{
     val local_image = "local_image"
     val donation_data = "donation_data"
     val otp_expiration_time: Long = 1000*60
+    val coll_users = "coll_users"
+    val first_time_launch = "first_time_launch"
+    val otp_codes = "otp_codes"
+    val code_instances = "code_instances"
 
 
     fun getCurrency(country_code: String):String{
@@ -106,6 +112,41 @@ class Constants{
 
     inner class SharedPreferenceManager(val applicationContext: Context){
 
+        fun setPersonalInfo(phone: Number, email: String, name: String, sign_up_time: Long, uid: String){
+            val user = user(phone,email,name, sign_up_time,uid)
+            val pref: SharedPreferences = applicationContext.getSharedPreferences(coll_users, Context.MODE_PRIVATE)
+            pref.edit().clear().putString(coll_users, Gson().toJson(user)).apply()
+        }
+
+        fun setPerson(usr: user){
+            val pref: SharedPreferences = applicationContext.getSharedPreferences(coll_users, Context.MODE_PRIVATE)
+            pref.edit().clear().putString(coll_users, Gson().toJson(usr)).apply()
+        }
+
+        fun isFirstTimeLaunch(): Boolean{
+            val pref: SharedPreferences = applicationContext.getSharedPreferences(first_time_launch, Context.MODE_PRIVATE)
+            val va = pref.getBoolean(first_time_launch, true)
+
+            return va
+        }
+
+        fun setFirstTimeLaunch(value: Boolean){
+            val pref: SharedPreferences = applicationContext.getSharedPreferences(first_time_launch, Context.MODE_PRIVATE)
+            pref.edit().putBoolean(first_time_launch,value).apply()
+        }
+
+        fun getPersonalInfo(): user?{
+            val pref: SharedPreferences = applicationContext.getSharedPreferences(coll_users, Context.MODE_PRIVATE)
+            val user_str = pref.getString(coll_users, "")
+
+            if(user_str==""){
+                return null
+            }else{
+                return Gson().fromJson(user_str, user::class.java)
+            }
+        }
+
+
 
         fun set_local_image(id: String, image: String){
             val pref: SharedPreferences = applicationContext.getSharedPreferences(local_image, Context.MODE_PRIVATE)
@@ -126,6 +167,8 @@ class Constants{
             applicationContext.getSharedPreferences(local_image, Context.MODE_PRIVATE).edit().clear().apply()
         }
     }
+
+    inner class user(var phone: Number, val email: String, var name: String, val sign_up_time: Long, val uid: String): Serializable
 
 
     var continue_loading = false
@@ -198,9 +241,9 @@ class Constants{
             storageReference.getBytes(ONE_MEGABYTE).addOnSuccessListener {
                 stop_image_loader()
                 val bmp = BitmapFactory.decodeByteArray(it, 0, it.size)
+                SharedPreferenceManager((context)).set_local_image(storageReference.path, encodeImage(bmp.copy(bmp.getConfig(), true),false)!!)
                 val final = getCroppedBitmap(bmp)
                 user_image.setImageBitmap(getResizedBitmap(final,200))
-                SharedPreferenceManager((context)).set_local_image(storageReference.path, encodeImage(bmp,false)!!)
 
             }.addOnFailureListener {
                 stop_image_loader()

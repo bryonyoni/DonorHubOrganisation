@@ -2,4 +2,6 @@
     <string name="app_name">DonorHubOrganisation</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="that_didnt_work">That doesnt work</string>
+    <string name="please_check_on_your_internet_connection">Please check on your internet connection</string>
 </resources>

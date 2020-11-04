@@ -24,7 +24,7 @@ class AddOrganisationMember : Fragment() {
     private val ARG_PARAM2 = "param2"
     private val ARG_ORGANISATION = "ARG_ORGANISATION"
     private lateinit var the_organisation: Organisation
-    private lateinit var listener: AddOrganisationMember
+    private lateinit var listener: AddOrganisationMemberInterface
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,7 +39,7 @@ class AddOrganisationMember : Fragment() {
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
-        if(context is AddOrganisationMember){
+        if(context is AddOrganisationMemberInterface){
             listener = context
         }
     }
@@ -88,7 +88,7 @@ class AddOrganisationMember : Fragment() {
             }
     }
 
-    interface AddOrganisationMember{
+    interface AddOrganisationMemberInterface{
         fun generatePasscodeClicked(organisation: Organisation, code: Long)
     }
 }
