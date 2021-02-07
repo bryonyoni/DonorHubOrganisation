@@ -20,6 +20,8 @@ import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.StorageReference
 import com.google.firebase.storage.ktx.storage
 import com.google.gson.Gson
+import java.util.*
+import kotlin.collections.ArrayList
 
 
 class NewDonations : Fragment() {
@@ -97,7 +99,8 @@ class NewDonations : Fragment() {
             var donation = donations[position]
 
             viewHolder.donation_desc.text = donation.description
-            viewHolder.creation_time.text = Constants().construct_elapsed_time(donation.creation_time)
+            viewHolder.creation_time.text = Constants().construct_elapsed_time(Calendar.getInstance().timeInMillis
+                    - donation.creation_time)
 
             viewHolder.view_donation_relative.setOnClickListener {
                 listener.whenNewDonationViewDonation(donation, the_organisation)

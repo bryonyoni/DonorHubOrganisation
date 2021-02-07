@@ -86,7 +86,7 @@ class SetCollectionDate : Fragment() {
             val month = datePicker.month
             val day = datePicker.dayOfMonth
 
-            Toast.makeText(context, "set for ${day}: ${month}: ${year}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "set for ${day}: ${month+1}: ${year}", Toast.LENGTH_SHORT).show()
             val ca = Calendar.getInstance()
             ca.set(Calendar.YEAR, year)
             ca.set(Calendar.MONTH, month)

@@ -14,10 +14,18 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
+
+            <ImageView
+                android:id="@+id/org_image"
+                android:scaleType="centerCrop"
+                android:layout_width="match_parent"
+                android:src="@color/colorAccent"
+                android:layout_height="200dp"/>
+
             <View
                 android:layout_width="match_parent"
-                android:background="@color/colorAccent"
-                android:alpha="0.5"
+                android:alpha="0.4"
+                android:background="@color/black"
                 android:layout_height="200dp"/>
 
             <LinearLayout
@@ -46,6 +54,15 @@
                     android:text="Nairobi" />
 
             </LinearLayout>
+
+            <ImageView
+                android:id="@+id/add_photos_image"
+                android:layout_width="30dp"
+                android:layout_alignParentEnd="true"
+                android:layout_marginTop="160dp"
+                android:layout_marginEnd="10dp"
+                android:src="@drawable/ic_action_photo"
+                android:layout_height="30dp"/>
 
         </RelativeLayout>
 
@@ -218,6 +235,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:orientation="horizontal"
+            android:visibility="gone"
             android:layout_marginTop="20dp"
             android:layout_marginHorizontal="15dp"
             android:layout_height="wrap_content">
@@ -243,6 +261,7 @@
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/activities_recyclerview"
             android:layout_width="match_parent"
+            android:visibility="gone"
             android:layout_marginTop="10dp"
             android:layout_marginHorizontal="15dp"
             android:layout_height="wrap_content"/>

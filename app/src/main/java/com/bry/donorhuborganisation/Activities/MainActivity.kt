@@ -1,27 +1,39 @@
 package com.bry.donorhuborganisation.Activities
 
+import android.Manifest
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.net.ConnectivityManager
+import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
+import android.provider.MediaStore
 import android.util.Log
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.appcompat.app.ActionBar
+import androidx.core.app.ActivityCompat
 import com.bry.donorhuborganisation.Constants
 import com.bry.donorhuborganisation.Fragments.Authentication.SignIn
 import com.bry.donorhuborganisation.Fragments.Authentication.SignUp
 import com.bry.donorhuborganisation.Fragments.Authentication.SignUpEmail
 import com.bry.donorhuborganisation.Fragments.Authentication.SignUpPhone
 import com.bry.donorhuborganisation.Fragments.Homepage.*
+import com.bry.donorhuborganisation.GpsUtils
 import com.bry.donorhuborganisation.Model.Donation
 import com.bry.donorhuborganisation.Model.Number
 import com.bry.donorhuborganisation.Model.Organisation
+import com.bry.donorhuborganisation.Models.Batch
 import com.bry.donorhuborganisation.Models.Collectors
 import com.bry.donorhuborganisation.R
 import com.bry.donorhuborganisation.databinding.ActivityMainBinding
+import com.google.android.gms.location.*
+import com.google.android.gms.maps.model.LatLng
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -43,7 +55,10 @@ class MainActivity : AppCompatActivity(),
         AddOrganisationMember.AddOrganisationMemberInterface,
         NewDonations.NewDonationsInterface,
         ViewDonation.ViewDonationInterface,
-        SetCollectionDate.SetCollectionDateInterface
+        SetCollectionDate.SetCollectionDateInterface,
+        PickMapLocation.PickMapLocationInterface,
+        NewBatch.NewBatchInterface,
+        AddToBatch.addToBatchInterface
 {
     val TAG = "MainActivity"
     val constants = Constants()
@@ -59,12 +74,17 @@ class MainActivity : AppCompatActivity(),
     val _add_organisation_member = "_add_organisation_member"
     val _view_donation = "_view_donation"
     val _view_set_collection_date = "_view_set_collection_date"
+    val _map_fragment = "_map_fragment"
+    val _new_batch = "_new_batch"
+    val _add_to_batch = "_add_to_batch"
 
     private lateinit var binding: ActivityMainBinding
     val db = Firebase.firestore
     private var donations: ArrayList<Donation> = ArrayList()
     private var organisations: ArrayList<Organisation> = ArrayList()
     private var users : ArrayList<Constants.user> = ArrayList()
+    private var batches: ArrayList<Batch> = ArrayList()
+    private var activities: ArrayList<Donation.activity> = ArrayList()
     var doubleBackToExitPressedOnce: Boolean = false
     var is_loading: Boolean = false
 
@@ -88,6 +108,7 @@ class MainActivity : AppCompatActivity(),
         }
 
 
+//        Toast.makeText(applicationContext, "${Calendar.getInstance().time}", Toast.LENGTH_SHORT).show()
     }
 
     override fun onBackPressed() {
@@ -132,6 +153,8 @@ class MainActivity : AppCompatActivity(),
         organisations.clear()
         donations.clear()
         users.clear()
+        batches.clear()
+        activities.clear()
 
         db.collection("organisations").get().addOnSuccessListener {
             if(!it.isEmpty){
@@ -156,6 +179,15 @@ class MainActivity : AppCompatActivity(),
                         if(doc.contains("taken_down")){
                             don.is_taken_down = doc["taken_down"] as Boolean
                         }
+                        if(doc.contains("collectors")){
+                            don.collectors = Gson().fromJson(doc["collectors"] as String, Collectors::class.java)
+                        }
+                        if(doc.contains("pick_up_time")){
+                            don.pick_up_time = doc["pick_up_time"] as Long
+                        }
+                        if(doc.contains("batch")){
+                            don.batch_id = doc["batch"] as String
+                        }
                         donations.add(don)
                     }
                 }
@@ -176,6 +208,28 @@ class MainActivity : AppCompatActivity(),
 
                 val us = Constants().user(numbr, email, name, sign_up_time, uid)
                 users.add(us)
+            }
+        }
+
+        db.collection("batches").get().addOnSuccessListener {
+            if(!it.isEmpty){
+                for(doc in it.documents){
+                    var latLng = Gson().fromJson(doc["location"] as String, LatLng::class.java)
+                    batches.add(Batch(doc["name"] as String, latLng, doc["id"] as String, doc["organisation_id"] as String))
+                }
+            }
+        }
+
+        db.collection("activities").get().addOnSuccessListener {
+            if(!it.isEmpty){
+                for(doc in it.documents){
+                    var activity_id = doc["activity_id"] as String
+                    var explanation = doc["explanation"] as String
+                    var timestamp = doc["timestamp"] as Long
+                    var donation_id = doc["donation"] as String
+
+                    activities.add(Donation.activity(explanation, timestamp, donation_id, activity_id))
+                }
             }
         }
     }
@@ -203,8 +257,25 @@ class MainActivity : AppCompatActivity(),
             if(organ.members.contains(uid)) {
                 val org_string = Gson().toJson(organ)
                 has_org = true
+
+                var org_activities = ArrayList<Donation.activity>()
+                var org_donations = ArrayList<String>()
+
+                for(item in donations){
+                    org_donations.add(item.donation_id)
+                }
+
+                for(item in activities){
+                    if(org_donations.contains(item.donation_id)){
+                        org_activities.add(item)
+                    }
+                }
+
+                var act_string = Gson().toJson(Donation.activities(org_activities))
+
                 supportFragmentManager.beginTransaction().setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left)
-                        .replace(binding.money.id, ViewOrganisation.newInstance("", "", org_string, "")
+                        .replace(binding.money.id, ViewOrganisation.newInstance("", "", org_string
+                                , "", act_string)
                                 , _view_organisation).commit()
             }
         }
@@ -397,8 +468,37 @@ class MainActivity : AppCompatActivity(),
         val orgs = Gson().toJson(organisation)
 
         supportFragmentManager.beginTransaction().setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left)
-            .replace(binding.money.id, AddOrganisationMember.newInstance("", "", orgs)
+            .add(binding.money.id, AddOrganisationMember.newInstance("", "", orgs)
                 , _add_organisation_member).commit()
+    }
+
+    private val PICK_IMAGE_REQUEST = 420
+    override fun whenAddPhoto() {
+        val intent = Intent()
+        intent.type = "image/*"
+        intent.action = Intent.ACTION_GET_CONTENT
+        startActivityForResult(Intent.createChooser(intent, "Select Picture"), PICK_IMAGE_REQUEST)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        //if were picking an image
+        if (requestCode == PICK_IMAGE_REQUEST
+                && resultCode == Activity.RESULT_OK
+                && data != null && data.data != null) {
+            if (data.data != null) {
+                val mFilepath = data.data!!
+                try {
+                    val bitmap: Bitmap = MediaStore.Images.Media.getBitmap(contentResolver, mFilepath)
+                    if(supportFragmentManager.findFragmentByTag(_view_organisation)!=null){
+                        (supportFragmentManager.findFragmentByTag(_view_organisation) as ViewOrganisation).onImagePicked(bitmap)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
     }
 
     override fun whenPickOrganisationOrgPicked(organisation: Organisation) {
@@ -498,8 +598,19 @@ class MainActivity : AppCompatActivity(),
     override fun whenNewDonationViewDonation(donation: Donation, organisation: Organisation) {
         val don = Gson().toJson(donation)
         val org = Gson().toJson(organisation)
+
+        var org_activities = ArrayList<Donation.activity>()
+
+        for(item in activities){
+            if(item.donation_id.equals(donation.donation_id)){
+                org_activities.add(item)
+            }
+        }
+
+        var act_string = Gson().toJson(Donation.activities(org_activities))
+
         supportFragmentManager.beginTransaction().setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left)
-            .add(binding.money.id, ViewDonation.newInstance("", "", org, don), _view_donation).commit()
+            .add(binding.money.id, ViewDonation.newInstance("", "", org, don, act_string), _view_donation).commit()
     }
 
     override fun whenReloadEverything() {
@@ -527,7 +638,24 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun whenFinishDonationPickupClicked(donation: Donation, organisation: Organisation) {
+//        showLoadingScreen()
 
+//        db.collection("donations")
+//                .document(donation.donation_id)
+//                .update(mapOf(
+//                        "collected_status" to true
+//                )).addOnSuccessListener {
+//                    hideLoadingScreen()
+//                    Toast.makeText(applicationContext,
+//                            "The donation has been set as collected",
+//                            Toast.LENGTH_SHORT).show()
+//                    onBackPressed()
+//                    loadDonationsAndOrganisations()
+//                }
+
+        supportFragmentManager.beginTransaction().setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left)
+                .add(binding.money.id, AddToBatch.newInstance("","",Gson().toJson(organisation),
+                        Gson().toJson(donation),Gson().toJson(Batch.BatchList(batches))), _add_to_batch).commit()
     }
 
     override fun whenFinishDonationShareLocation(
@@ -535,7 +663,7 @@ class MainActivity : AppCompatActivity(),
         organisation: Organisation,
         isToShareLoc: Boolean
     ) {
-
+        //scrapped
     }
 
     override fun whenSetCollectionDateCollectorPicked(
@@ -544,8 +672,221 @@ class MainActivity : AppCompatActivity(),
         organisation: Organisation,
         coll_time: Long
     ) {
+        showLoadingScreen()
+
+        db.collection("donations")
+                .document(donation.donation_id)
+                .update(mapOf(
+                        "pick_up_time" to coll_time,
+                        "collectors" to Gson().toJson(collector)
+                )).addOnSuccessListener {
+                    hideLoadingScreen()
+                    Toast.makeText(applicationContext,
+                            "${collector.name} has been set to collect the item in ${constants
+                                    .construct_elapsed_time(coll_time - Calendar.getInstance().timeInMillis)}",
+                            Toast.LENGTH_SHORT).show()
+                    onBackPressed()
+                    loadDonationsAndOrganisations()
+                }
+
+        var activity_ref = db.collection("activities")
+                .document()
+
+        var coll_time_calc = Calendar.getInstance()
+        coll_time_calc.timeInMillis = coll_time
+
+        var data = mapOf(
+                "activity_id" to activity_ref.id,
+                "explanation" to "${collector.name} has been set to collect the item on ${coll_time_calc.time}.",
+                "timestamp" to Calendar.getInstance().timeInMillis,
+                "donation" to donation.donation_id
+        )
+
+        activity_ref.set(data)
+    }
+
+
+
+    val requestCodeForViewingMyLoc = 13
+    fun open_map_fragment(){
+        supportFragmentManager.beginTransaction().setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left)
+            .add(binding.money.id, PickMapLocation(),_map_fragment).commit()
 
     }
 
+
+    private lateinit var mFusedLocationClient: FusedLocationProviderClient
+    private lateinit var locationRequest: LocationRequest
+    private lateinit var locationCallback: LocationCallback
+    private val locationRequestCode = 1000
+
+    fun load_my_location_for_map(){
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) !=
+            PackageManager.PERMISSION_GRANTED &&
+            ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) !=
+            PackageManager.PERMISSION_GRANTED)
+        {
+            ActivityCompat.requestPermissions(this, arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION), requestCodeForViewingMyLoc)
+        } else {
+            mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+            locationRequest = LocationRequest.create()
+            locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
+            locationRequest.setInterval(7000)
+            locationRequest.setFastestInterval(7000)
+
+
+            locationCallback = object : LocationCallback() {
+                override fun onLocationResult(locationResult: LocationResult) {
+                    if (locationResult == null) {
+                        return
+                    }
+                    for (location in locationResult.locations) {
+                        if (location != null) {
+                            val wayLatitude = location.latitude
+                            val wayLongitude = location.longitude
+                            Log.e(TAG,"wayLatitude: ${wayLatitude} longitude: ${wayLongitude}")
+                            if(is_map_fragment_open) {
+                                if (supportFragmentManager.findFragmentByTag(_map_fragment) != null) {
+                                    (supportFragmentManager.findFragmentByTag(_map_fragment) as PickMapLocation)
+                                        .whenMyLocationGotten(
+                                            LatLng(wayLatitude, wayLongitude)
+                                        )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            mFusedLocationClient.requestLocationUpdates(locationRequest,locationCallback,null)
+
+            is_location_client_running = true
+
+        }
+    }
+
+    var ACCESS_FINE_LOCATION_CODE = 3310
+    override fun whenMapFragmentLoaded() {
+        is_map_fragment_open = true
+        GpsUtils(this).turnGPSOn(object : GpsUtils.onGpsListener {
+            override fun gpsStatus(isGPSEnable: Boolean) {
+                load_my_location_for_map()
+            }
+        })
+
+    }
+
+    var is_map_fragment_open = false
+    var is_location_client_running = false
+    override fun whenMapFragmentClosed() {
+        is_map_fragment_open = false
+        if (is_location_client_running) {
+            mFusedLocationClient.removeLocationUpdates(locationCallback)
+            is_location_client_running = false
+        }
+    }
+
+    override fun whenMapLocationPicked(latLng: LatLng) {
+        Toast.makeText(applicationContext, "Location set!", Toast.LENGTH_SHORT).show()
+        if(supportFragmentManager.findFragmentByTag(_new_batch)!=null){
+            (supportFragmentManager.findFragmentByTag(_new_batch) as NewBatch).onLocationPicked(latLng)
+        }
+        onBackPressed()
+    }
+
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String?>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        when (requestCode) {
+            requestCodeForViewingMyLoc -> {
+                if (grantResults.size > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED
+                ) {
+                    load_my_location_for_map()
+                } else {
+                    Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    override fun setBatchLocation() {
+        open_map_fragment()
+    }
+
+    override fun newBatch(title: String, location: LatLng, donation: Donation, organisation: Organisation) {
+        showLoadingScreen()
+
+        var docData = db.collection("batches")
+            .document()
+
+        var data = hashMapOf(
+            "id" to docData.id,
+            "name" to title,
+            "location" to Gson().toJson(location),
+            "organisation_id" to organisation.org_id
+        )
+
+        db.collection("donations").document(donation.donation_id)
+            .update(mapOf(
+                "batch" to docData.id
+            ))
+
+
+
+        docData.set(data).addOnSuccessListener {
+            onBackPressed()
+            hideLoadingScreen()
+            Toast.makeText(applicationContext, "done!", Toast.LENGTH_SHORT).show()
+            loadDonationsAndOrganisations()
+        }
+
+        var activity_ref = db.collection("activities")
+                .document()
+
+        var datas = mapOf(
+                "activity_id" to activity_ref.id,
+                "explanation" to "Donation has been set to batch: ${title}.",
+                "timestamp" to Calendar.getInstance().timeInMillis,
+                "donation" to donation.donation_id
+        )
+
+        activity_ref.set(datas)
+    }
+
+    override fun createNewBatch(organisation: Organisation, donation: Donation) {
+        supportFragmentManager.beginTransaction().setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left)
+            .add(binding.money.id, NewBatch.newInstance("","",Gson().toJson(organisation),
+                    Gson().toJson(donation)),_new_batch).commit()
+    }
+
+    override fun selectBatch(batch: Batch, organisation: Organisation, donation: Donation) {
+        showLoadingScreen()
+
+        db.collection("donations").document(donation.donation_id)
+            .update(mapOf(
+                "batch" to batch.batch_id
+            )).addOnSuccessListener {
+                onBackPressed()
+                hideLoadingScreen()
+                Toast.makeText(applicationContext, "done!", Toast.LENGTH_SHORT).show()
+                loadDonationsAndOrganisations()
+            }
+
+
+
+        var activity_ref = db.collection("activities")
+                .document()
+
+        var datas = mapOf(
+                "activity_id" to activity_ref.id,
+                "explanation" to "Donation has been set to batch: ${title}.",
+                "timestamp" to Calendar.getInstance().timeInMillis,
+                "donation" to donation.donation_id
+        )
+
+        activity_ref.set(datas)
+    }
 
 }

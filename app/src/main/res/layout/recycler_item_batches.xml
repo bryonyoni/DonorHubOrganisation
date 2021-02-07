@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
@@ -14,18 +15,19 @@
             android:layout_height="wrap_content">
 
             <TextView
-                android:id="@+id/user_name"
+                android:id="@+id/batch_name"
                 android:layout_width="wrap_content"
-                android:text="Kenny Doe"
+                android:text="Batch name.."
                 android:textSize="18sp"
                 android:textColor="@color/colorAccent"
                 android:layout_height="wrap_content"/>
 
             <RelativeLayout
-                android:id="@+id/pick_user"
+                android:id="@+id/pick_batch"
                 android:layout_width="wrap_content"
                 android:layout_alignParentEnd="true"
-                android:layout_centerVertical="true"
+                android:paddingBottom="5dp"
+                android:paddingTop="5dp"
                 android:layout_height="wrap_content">
 
                 <LinearLayout
@@ -57,19 +59,10 @@
 
         </RelativeLayout>
 
-        <TextView
-            android:id="@+id/pick_user_exp"
-            android:layout_width="wrap_content"
-            android:textSize="15sp"
-            android:layout_marginTop="5dp"
-            android:layout_gravity="center_vertical"
-            android:layout_height="wrap_content"
-            android:text="Pick Kenny doe to do the pickup" />
-
         <View
             android:layout_width="match_parent"
             android:background="@color/colorAccent"
-            android:layout_marginTop="15dp"
+            android:layout_marginTop="10dp"
             android:alpha="0.5"
             android:layout_height="1dp"/>
 

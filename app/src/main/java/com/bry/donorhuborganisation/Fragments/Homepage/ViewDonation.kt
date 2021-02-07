@@ -17,6 +17,8 @@ import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.StorageReference
 import com.google.firebase.storage.ktx.storage
 import com.google.gson.Gson
+import java.util.*
+import kotlin.collections.ArrayList
 
 class ViewDonation : Fragment() {
     // TODO: Rename and change types of parameters
@@ -26,8 +28,10 @@ class ViewDonation : Fragment() {
     private val ARG_PARAM2 = "param2"
     private val ARG_ORGANISATION = "ARG_ORGANISATION"
     private val ARG_DONATION = "ARG_DONATION"
+    private val ARG_ACTIVITIES = "ARG_ACTIVITIES"
     private lateinit var organisation: Organisation
     private lateinit var donation: Donation
+    private lateinit var activities: ArrayList<Donation.activity>
     private lateinit var listener: ViewDonationInterface
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,6 +41,7 @@ class ViewDonation : Fragment() {
             param2 = it.getString(ARG_PARAM2)
             organisation = Gson().fromJson(it.getString(ARG_ORGANISATION), Organisation::class.java)
             donation = Gson().fromJson(it.getString(ARG_DONATION) as String, Donation::class.java)
+            activities = Gson().fromJson(it.getString(ARG_ACTIVITIES), Donation.activities::class.java).activities
         }
     }
 
@@ -60,10 +65,16 @@ class ViewDonation : Fragment() {
         val finish_relative: RelativeLayout = va.findViewById(R.id.finish_relative)
         val share_location_layout: LinearLayout = va.findViewById(R.id.share_location_layout)
         val share_location_switch: Switch = va.findViewById(R.id.share_location_switch)
+        val activities_recyclerview: RecyclerView = va.findViewById(R.id.activities_recyclerview)
 
         donation_desc.text = donation.description
-        donation_time.text = Constants().construct_elapsed_time(donation.creation_time)
+        donation_time.text = Constants().construct_elapsed_time(Calendar.getInstance().timeInMillis - donation.creation_time)
 
+
+        if(activities.isNotEmpty()){
+            activities_recyclerview.adapter = ActivitiesListAdapter()
+            activities_recyclerview.layoutManager = LinearLayoutManager(context)
+        }
 
         donation_images_recyclerview.adapter = ImageListAdapter(donation)
         donation_images_recyclerview.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL,
@@ -112,16 +123,41 @@ class ViewDonation : Fragment() {
         val image_view: ImageView = view.findViewById(R.id.image)
     }
 
+
+    internal inner class ActivitiesListAdapter : RecyclerView.Adapter<ViewHolderActivities>() {
+
+        override fun onCreateViewHolder(viewGroup: ViewGroup, viewType: Int): ViewHolderActivities {
+            val vh = ViewHolderActivities(LayoutInflater.from(context).inflate(R.layout.recycler_item_activities, viewGroup, false))
+            return vh
+        }
+
+        override fun onBindViewHolder(v: ViewHolderActivities, position: Int) {
+            val activity = activities[position]
+
+            v.activity_explanation.text = activity.explanation
+            v.activity_time.text = Constants().construct_elapsed_time(Calendar.getInstance().timeInMillis - activity.time)
+        }
+
+        override fun getItemCount() = activities.size
+
+    }
+
+    internal inner class ViewHolderActivities (view: View) : RecyclerView.ViewHolder(view) {
+        val activity_explanation: TextView = view.findViewById(R.id.activity_explanation)
+        val activity_time: TextView = view.findViewById(R.id.activity_time)
+    }
+
     companion object {
 
         @JvmStatic
-        fun newInstance(param1: String, param2: String, organisation: String, donation: String) =
+        fun newInstance(param1: String, param2: String, organisation: String, donation: String, activities: String) =
             ViewDonation().apply {
                 arguments = Bundle().apply {
                     putString(ARG_PARAM1, param1)
                     putString(ARG_PARAM2, param2)
                     putString(ARG_ORGANISATION,organisation)
                     putString(ARG_DONATION,donation)
+                    putString(ARG_ACTIVITIES, activities)
                 }
             }
     }
