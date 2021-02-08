@@ -77,6 +77,8 @@ class MainActivity : AppCompatActivity(),
     val _map_fragment = "_map_fragment"
     val _new_batch = "_new_batch"
     val _add_to_batch = "_add_to_batch"
+    val _view_batches = "_view_batches"
+    val _view_image = "_view_image"
 
     private lateinit var binding: ActivityMainBinding
     val db = Firebase.firestore
@@ -275,7 +277,7 @@ class MainActivity : AppCompatActivity(),
 
                 supportFragmentManager.beginTransaction().setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left)
                         .replace(binding.money.id, ViewOrganisation.newInstance("", "", org_string
-                                , "", act_string)
+                                , Gson().toJson(Donation.donation_list(donations)), act_string)
                                 , _view_organisation).commit()
             }
         }
@@ -480,6 +482,12 @@ class MainActivity : AppCompatActivity(),
         startActivityForResult(Intent.createChooser(intent, "Select Picture"), PICK_IMAGE_REQUEST)
     }
 
+    override fun whenViewBatches() {
+        supportFragmentManager.beginTransaction().setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left)
+            .add(binding.money.id, ViewBatches.newInstance("","",
+                Gson().toJson(Batch.BatchList(batches)) ), _view_batches).commit()
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
@@ -664,6 +672,13 @@ class MainActivity : AppCompatActivity(),
         isToShareLoc: Boolean
     ) {
         //scrapped
+    }
+
+    override fun whenViewDonationImage(image: Donation.donation_image, donation: Donation) {
+
+        supportFragmentManager.beginTransaction().setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left)
+            .add(binding.money.id, ViewImage.newInstance("", "", Gson().toJson(image)
+                , Gson().toJson(donation)), _view_image).commit()
     }
 
     override fun whenSetCollectionDateCollectorPicked(

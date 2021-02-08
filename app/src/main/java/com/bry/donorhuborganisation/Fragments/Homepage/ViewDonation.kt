@@ -112,6 +112,10 @@ class ViewDonation : Fragment() {
                 .child(image.name + ".jpg")
             Constants().load_round_job_image(storageReference, viewHolder.image_view, context!!)
 
+            viewHolder.image_view.setOnClickListener {
+                listener.whenViewDonationImage(image, donation)
+            }
+
         }
 
         override fun getItemCount() = donation.images.size
@@ -166,5 +170,6 @@ class ViewDonation : Fragment() {
         fun whenScheduleDonationPickupClicked(donation: Donation, organisation: Organisation)
         fun whenFinishDonationPickupClicked(donation: Donation, organisation: Organisation)
         fun whenFinishDonationShareLocation(donation: Donation, organisation: Organisation, isToShareLoc: Boolean)
+        fun whenViewDonationImage(image: Donation.donation_image, donation: Donation)
     }
 }

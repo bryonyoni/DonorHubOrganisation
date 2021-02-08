@@ -17,24 +17,52 @@ import com.google.gson.Gson
 
 class ViewDonationLocation : Fragment() {
     var DONATION = "DONATION"
+    private val ARG_DONATION = "ARG_DONATION"
     private lateinit var donation: Donation
     private lateinit var mMap: GoogleMap
+    private var donation_list: ArrayList<Donation> = ArrayList()
+    private var hasSetCamera = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
             donation = Gson().fromJson(it.getString(DONATION), Donation::class.java)
+            donation_list = Gson().fromJson(it.getString(ARG_DONATION) as String, Donation.donation_list::class.java).donation_list
         }
     }
 
     private val callback = OnMapReadyCallback { googleMap ->
         mMap = googleMap
-        var pos = donation.location
-        move_cam_to_location(pos, 17f)
 
-        googleMap.addMarker(MarkerOptions()
+        if(donation_list.isNotEmpty()){
+            for(donation in donation_list){
+                if (donation.location != null) {
+                    if (donation.location.latitude != 0.0 && donation.location.longitude != 0.0) {
+                        var pos = donation.location
+//                    move_cam_to_location(pos, 17f)
+
+                        googleMap.addMarker(
+                            MarkerOptions()
+                                .position(pos)
+                                .title("donation.description")
+                        )
+                        if(!hasSetCamera){
+                            hasSetCamera = true
+                            move_cam_to_location(pos, 17f)
+                        }
+
+                    }
+                }
+            }
+
+        }else{
+            var pos = donation.location
+            move_cam_to_location(pos, 17f)
+
+            googleMap.addMarker(MarkerOptions()
                 .position(pos)
                 .title("donation.description"))
+        }
 
     }
 
@@ -63,9 +91,10 @@ class ViewDonationLocation : Fragment() {
     companion object {
 
         @JvmStatic
-        fun newInstance(donation: String) = ViewDonationLocation().apply {
+        fun newInstance(donation: String, donations: String) = ViewDonationLocation().apply {
                     arguments = Bundle().apply {
                         putString(DONATION, donation)
+                        putString(ARG_DONATION,donations)
                     }
                 }
     }

@@ -2,28 +2,26 @@ package com.bry.donorhuborganisation.Fragments.Homepage
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.os.Bundle
-import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.CalendarView
 import android.widget.ImageView
 import android.widget.RelativeLayout
 import android.widget.TextView
+import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bry.donorhuborganisation.Constants
 import com.bry.donorhuborganisation.Model.Donation
 import com.bry.donorhuborganisation.Model.Organisation
 import com.bry.donorhuborganisation.R
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
 import com.google.gson.Gson
 import java.io.ByteArrayOutputStream
-import java.util.*
 import kotlin.collections.ArrayList
 
 class ViewOrganisation : Fragment() {
@@ -36,9 +34,10 @@ class ViewOrganisation : Fragment() {
     private val ARG_DONATION = "ARG_DONATION"
     private val ARG_ACTIVITIES = "ARG_ACTIVITIES"
     private lateinit var organisation: Organisation
-    private lateinit var donation: String
+    private lateinit var donations: ArrayList<Donation>
     private lateinit var activities: ArrayList<Donation.activity>
     private lateinit var listener: ViewOrganisationInterface
+    private var is_loading_avatar = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,7 +45,7 @@ class ViewOrganisation : Fragment() {
             param1 = it.getString(ARG_PARAM1)
             param2 = it.getString(ARG_PARAM2)
             organisation = Gson().fromJson(it.getString(ARG_ORGANISATION), Organisation::class.java)
-            donation = it.getString(ARG_DONATION) as String
+            donations = Gson().fromJson(it.getString(ARG_DONATION) as String, Donation.donation_list::class.java).donation_list
             activities = Gson().fromJson(it.getString(ARG_ACTIVITIES), Donation.activities::class.java).activities
         }
     }
@@ -70,6 +69,13 @@ class ViewOrganisation : Fragment() {
         val add_organisation_relative: RelativeLayout = va.findViewById(R.id.add_organisation_relative)
         val add_photos_image: ImageView = va.findViewById(R.id.add_photos_image)
         val org_image: ImageView = va.findViewById(R.id.org_image)
+        val view_batches_relative: RelativeLayout = va.findViewById(R.id.view_batches_relative)
+
+        val location_container: CardView = va.findViewById(R.id.location_container)
+        val map_layout: RelativeLayout = va.findViewById(R.id.map_layout)
+
+        val add_avatar_image: ImageView = va.findViewById(R.id.add_avatar_image)
+        val user_image: ImageView = va.findViewById(R.id.user_image)
 
         organisation_name.text = organisation.name
         location.text = organisation.location_name
@@ -82,11 +88,6 @@ class ViewOrganisation : Fragment() {
             listener.whenNewDonationAddMember(organisation)
         }
 
-        if(!donation.equals("")){
-            val don_obj = Gson().fromJson(donation, Donation::class.java)
-
-        }
-
         if(activities.isNotEmpty()){
             activities_recyclerview.adapter = ActivitiesListAdapter()
             activities_recyclerview.layoutManager = LinearLayoutManager(context)
@@ -96,23 +97,50 @@ class ViewOrganisation : Fragment() {
             listener.whenAddPhoto()
         }
 
+        add_avatar_image.setOnClickListener {
+            is_loading_avatar = true
+            listener.whenAddPhoto()
+        }
+
         onImagePicked = {
-            org_image.setImageBitmap(it)
+            if(is_loading_avatar){
+                is_loading_avatar = false
+                user_image.setImageBitmap(Constants().getCroppedBitmap(it))
 
-            val d = organisation.org_id
+                val d = FirebaseAuth.getInstance().currentUser!!.uid
 
-            val avatarRef = Firebase.storage.reference
+                val avatarRef = Firebase.storage.reference
+                    .child("avatar_backgrounds")
+                    .child("${d}.jpg")
+
+                val baos = ByteArrayOutputStream()
+                it.compress(Bitmap.CompressFormat.JPEG, 100, baos)
+                val data = baos.toByteArray()
+
+                avatarRef.putBytes(data).addOnFailureListener {
+//                Log.e(TAG,it.message.toString())
+                }.addOnSuccessListener {
+//                Log.e(TAG,"Written image in the cloud!")
+                }
+
+            }else {
+                org_image.setImageBitmap(it)
+
+                val d = organisation.org_id
+
+                val avatarRef = Firebase.storage.reference
                     .child("organisation_backgrounds")
                     .child("${d}.jpg")
 
-            val baos = ByteArrayOutputStream()
-            it.compress(Bitmap.CompressFormat.JPEG, 100, baos)
-            val data = baos.toByteArray()
+                val baos = ByteArrayOutputStream()
+                it.compress(Bitmap.CompressFormat.JPEG, 100, baos)
+                val data = baos.toByteArray()
 
-            avatarRef.putBytes(data).addOnFailureListener{
+                avatarRef.putBytes(data).addOnFailureListener {
 //                Log.e(TAG,it.message.toString())
-            }.addOnSuccessListener {
+                }.addOnSuccessListener {
 //                Log.e(TAG,"Written image in the cloud!")
+                }
             }
         }
 
@@ -122,6 +150,31 @@ class ViewOrganisation : Fragment() {
                 .child("${d}.jpg")
 
         Constants().load_normal_job_image(storageReference, org_image, context!!)
+
+
+
+        val d2 = FirebaseAuth.getInstance().currentUser!!.uid
+        val storageReference2 = Firebase.storage.reference
+            .child("avatar_backgrounds")
+            .child("${d2}.jpg")
+
+        Constants().load_round_job_image(storageReference2, user_image, context!!)
+
+
+
+
+        view_batches_relative.setOnClickListener {
+            listener.whenViewBatches()
+        }
+
+        if(donations.isNotEmpty()){
+            location_container.visibility = View.VISIBLE
+
+            var don = Gson().toJson(Donation.donation_list(donations))
+            childFragmentManager.beginTransaction().setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left)
+                .add(map_layout.id, ViewDonationLocation.newInstance(Gson().toJson(donations[0]),
+                    don), "_view_donation_location").commit()
+        }
 
         return va
     }
@@ -170,6 +223,7 @@ class ViewOrganisation : Fragment() {
         fun whenViewOrganisationViewOrganisationsDonations(organisation: Organisation)
         fun whenNewDonationAddMember(organisation: Organisation)
         fun whenAddPhoto()
+        fun whenViewBatches()
     }
 
 }
