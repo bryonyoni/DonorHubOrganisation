@@ -5,6 +5,7 @@ import com.google.android.gms.maps.model.LatLng
 
 class Donation(var description: String, var creation_time: Long, var donation_id: String) {
     var is_taken_down: Boolean =  false
+    var uploader_id: String = ""
     var images: ArrayList<donation_image> = ArrayList()
     var activies: ArrayList<activity> = ArrayList()
     var organisation_id: String = ""

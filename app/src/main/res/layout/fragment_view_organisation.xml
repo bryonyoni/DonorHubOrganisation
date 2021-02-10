@@ -280,8 +280,9 @@
                         android:layout_height="30dp"/>
 
                     <TextView
+                        android:id="@+id/twitter"
                         android:layout_width="wrap_content"
-                        android:text="Find them on twitter."
+                        android:text="Twitter link."
                         android:textSize="15sp"
                         android:layout_marginStart="10dp"
                         android:layout_gravity="center_vertical"
@@ -302,8 +303,9 @@
                         android:layout_height="30dp"/>
 
                     <TextView
+                        android:id="@+id/facebook"
                         android:layout_width="wrap_content"
-                        android:text="Find them on facebook."
+                        android:text="Facebook link."
                         android:textSize="15sp"
                         android:layout_marginStart="10dp"
                         android:layout_gravity="center_vertical"
@@ -324,8 +326,9 @@
                         android:layout_height="30dp"/>
 
                     <TextView
+                        android:id="@+id/instagram"
                         android:layout_width="wrap_content"
-                        android:text="Find them on instagram."
+                        android:text="Instagram link."
                         android:textSize="15sp"
                         android:layout_marginStart="10dp"
                         android:layout_gravity="center_vertical"

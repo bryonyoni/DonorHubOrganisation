@@ -33,6 +33,7 @@ class ViewDonationLocation : Fragment() {
 
     private val callback = OnMapReadyCallback { googleMap ->
         mMap = googleMap
+        mMap.uiSettings.isZoomControlsEnabled = true
 
         if(donation_list.isNotEmpty()){
             for(donation in donation_list){

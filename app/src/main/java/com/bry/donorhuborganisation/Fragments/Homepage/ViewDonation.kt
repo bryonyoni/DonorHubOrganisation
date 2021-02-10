@@ -29,8 +29,10 @@ class ViewDonation : Fragment() {
     private val ARG_ORGANISATION = "ARG_ORGANISATION"
     private val ARG_DONATION = "ARG_DONATION"
     private val ARG_ACTIVITIES = "ARG_ACTIVITIES"
+    private val ARG_USER = "ARG_USER"
     private lateinit var organisation: Organisation
     private lateinit var donation: Donation
+    private lateinit var user: Constants.user
     private lateinit var activities: ArrayList<Donation.activity>
     private lateinit var listener: ViewDonationInterface
 
@@ -42,6 +44,7 @@ class ViewDonation : Fragment() {
             organisation = Gson().fromJson(it.getString(ARG_ORGANISATION), Organisation::class.java)
             donation = Gson().fromJson(it.getString(ARG_DONATION) as String, Donation::class.java)
             activities = Gson().fromJson(it.getString(ARG_ACTIVITIES), Donation.activities::class.java).activities
+            user = Gson().fromJson(it.getString(ARG_USER) as String, Constants.user::class.java)
         }
     }
 
@@ -67,9 +70,13 @@ class ViewDonation : Fragment() {
         val share_location_switch: Switch = va.findViewById(R.id.share_location_switch)
         val activities_recyclerview: RecyclerView = va.findViewById(R.id.activities_recyclerview)
 
-        donation_desc.text = donation.description
-        donation_time.text = Constants().construct_elapsed_time(Calendar.getInstance().timeInMillis - donation.creation_time)
+        val uploader_textview: TextView = va.findViewById(R.id.uploader_textview)
+        val uploader_number_textview: TextView = va.findViewById(R.id.uploader_number_textview)
+        val uploader_email_textview: TextView = va.findViewById(R.id.uploader_email_textview)
 
+        donation_desc.text = donation.description
+        val age = Constants().construct_elapsed_time(Calendar.getInstance().timeInMillis - donation.creation_time)
+        donation_time.text = "Request sent $age ago."
 
         if(activities.isNotEmpty()){
             activities_recyclerview.adapter = ActivitiesListAdapter()
@@ -91,6 +98,10 @@ class ViewDonation : Fragment() {
         share_location_switch.setOnCheckedChangeListener { buttonView, isChecked ->
             listener.whenFinishDonationShareLocation(donation,organisation,isChecked)
         }
+
+        uploader_textview.text = user.name
+        uploader_number_textview.text = "${user.phone.country_number_code} ${user.phone.digit_number}"
+        uploader_email_textview.text = user.email
 
         return va
     }
@@ -154,7 +165,7 @@ class ViewDonation : Fragment() {
     companion object {
 
         @JvmStatic
-        fun newInstance(param1: String, param2: String, organisation: String, donation: String, activities: String) =
+        fun newInstance(param1: String, param2: String, organisation: String, donation: String, activities: String, user: String) =
             ViewDonation().apply {
                 arguments = Bundle().apply {
                     putString(ARG_PARAM1, param1)
@@ -162,6 +173,7 @@ class ViewDonation : Fragment() {
                     putString(ARG_ORGANISATION,organisation)
                     putString(ARG_DONATION,donation)
                     putString(ARG_ACTIVITIES, activities)
+                    putString(ARG_USER, user)
                 }
             }
     }

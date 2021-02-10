@@ -99,8 +99,9 @@ class NewDonations : Fragment() {
             var donation = donations[position]
 
             viewHolder.donation_desc.text = donation.description
-            viewHolder.creation_time.text = Constants().construct_elapsed_time(Calendar.getInstance().timeInMillis
+            val t_diff = Constants().construct_elapsed_time(Calendar.getInstance().timeInMillis
                     - donation.creation_time)
+            viewHolder.creation_time.text = "Requested ${t_diff} ago."
 
             viewHolder.view_donation_relative.setOnClickListener {
                 listener.whenNewDonationViewDonation(donation, the_organisation)

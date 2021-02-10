@@ -8,8 +8,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.RelativeLayout
+import android.widget.TextView
 import com.bry.donorhuborganisation.Model.Donation
 import com.bry.donorhuborganisation.Model.Organisation
+import com.bry.donorhuborganisation.Models.Batch
 import com.bry.donorhuborganisation.R
 import com.google.android.gms.maps.model.LatLng
 import com.google.gson.Gson
@@ -23,8 +25,10 @@ class NewBatch : Fragment() {
     private val ARG_PARAM2 = "param2"
     private val ARG_ORGANISATION = "ARG_ORGANISATION"
     private val ARG_DONATION = "ARG_DONATION"
+    private val ARG_BATCH = "ARG_BATCH"
     private lateinit var organisation: Organisation
     private lateinit var donation: Donation
+    private var batch: Batch? = null
     private lateinit var listener: NewBatchInterface
     private var location: LatLng = LatLng(0.0,0.0)
 
@@ -33,8 +37,15 @@ class NewBatch : Fragment() {
         arguments?.let {
             param1 = it.getString(ARG_PARAM1)
             param2 = it.getString(ARG_PARAM2)
-            organisation = Gson().fromJson(it.getString(ARG_ORGANISATION), Organisation::class.java)
-            donation = Gson().fromJson(it.getString(ARG_DONATION) as String, Donation::class.java)
+            if(!it.getString(ARG_ORGANISATION).equals("")){
+                organisation = Gson().fromJson(it.getString(ARG_ORGANISATION), Organisation::class.java)
+            }
+            if(!it.getString(ARG_DONATION).equals("")){
+                donation = Gson().fromJson(it.getString(ARG_DONATION) as String, Donation::class.java)
+            }
+            if(!it.getString(ARG_BATCH).equals("")){
+                batch = Gson().fromJson(it.getString(ARG_BATCH) as String, Batch::class.java)
+            }
         }
     }
 
@@ -57,6 +68,9 @@ class NewBatch : Fragment() {
         val finish_layout: RelativeLayout = va.findViewById(R.id.finish_layout)
         val descriptionEditText: EditText = va.findViewById(R.id.descriptionEditText)
 
+        val title: TextView = va.findViewById(R.id.title)
+        val create_button_text: TextView = va.findViewById(R.id.create_button_text)
+
         onLocationPicked = {
             location = it
         }
@@ -70,8 +84,22 @@ class NewBatch : Fragment() {
             if(desc.equals("")){
                 descriptionEditText.setError("type something!")
             }else{
-                listener.newBatch(desc, location, donation, organisation)
+                if(batch!=null){
+                    batch!!.name = desc
+                    batch!!.location = location
+                    listener.updateBatch(batch!!)
+                }else{
+                    listener.newBatch(desc, location, donation, organisation)
+                }
             }
+        }
+
+        if(batch!=null){
+            title.text = "Edit Batch"
+            create_button_text.text = "Finish"
+
+            descriptionEditText.setText(batch!!.name)
+            location = batch!!.location
         }
 
         return va
@@ -80,13 +108,14 @@ class NewBatch : Fragment() {
     companion object {
 
         @JvmStatic
-        fun newInstance(param1: String, param2: String, organisation: String, donation: String) =
+        fun newInstance(param1: String, param2: String, organisation: String, donation: String, batch: String) =
             NewBatch().apply {
                 arguments = Bundle().apply {
                     putString(ARG_PARAM1, param1)
                     putString(ARG_PARAM2, param2)
                     putString(ARG_ORGANISATION,organisation)
                     putString(ARG_DONATION,donation)
+                    putString(ARG_BATCH, batch)
                 }
             }
     }
@@ -94,5 +123,6 @@ class NewBatch : Fragment() {
     interface NewBatchInterface{
         fun setBatchLocation()
         fun newBatch(title: String, location: LatLng, donation: Donation, organisation: Organisation)
+        fun updateBatch(batch: Batch)
     }
 }

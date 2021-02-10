@@ -1,9 +1,10 @@
 package com.bry.donorhuborganisation.Fragments.Homepage
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,6 +12,7 @@ import android.widget.ImageView
 import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.cardview.widget.CardView
+import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bry.donorhuborganisation.Constants
@@ -22,7 +24,7 @@ import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
 import com.google.gson.Gson
 import java.io.ByteArrayOutputStream
-import kotlin.collections.ArrayList
+
 
 class ViewOrganisation : Fragment() {
     // TODO: Rename and change types of parameters
@@ -45,8 +47,14 @@ class ViewOrganisation : Fragment() {
             param1 = it.getString(ARG_PARAM1)
             param2 = it.getString(ARG_PARAM2)
             organisation = Gson().fromJson(it.getString(ARG_ORGANISATION), Organisation::class.java)
-            donations = Gson().fromJson(it.getString(ARG_DONATION) as String, Donation.donation_list::class.java).donation_list
-            activities = Gson().fromJson(it.getString(ARG_ACTIVITIES), Donation.activities::class.java).activities
+            donations = Gson().fromJson(
+                it.getString(ARG_DONATION) as String,
+                Donation.donation_list::class.java
+            ).donation_list
+            activities = Gson().fromJson(
+                it.getString(ARG_ACTIVITIES),
+                Donation.activities::class.java
+            ).activities
         }
     }
 
@@ -59,7 +67,11 @@ class ViewOrganisation : Fragment() {
 
     var onImagePicked: (pic_name: Bitmap) -> Unit = {}
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
         // Inflate the layout for this fragment
         val va = inflater.inflate(R.layout.fragment_view_organisation, container, false)
         val organisation_name: TextView = va.findViewById(R.id.organisation_name)
@@ -76,6 +88,11 @@ class ViewOrganisation : Fragment() {
 
         val add_avatar_image: ImageView = va.findViewById(R.id.add_avatar_image)
         val user_image: ImageView = va.findViewById(R.id.user_image)
+
+        val twitter: TextView = va.findViewById(R.id.twitter)
+        val facebook: TextView = va.findViewById(R.id.facebook)
+        val instagram: TextView = va.findViewById(R.id.instagram)
+
 
         organisation_name.text = organisation.name
         location.text = organisation.location_name
@@ -171,9 +188,38 @@ class ViewOrganisation : Fragment() {
             location_container.visibility = View.VISIBLE
 
             var don = Gson().toJson(Donation.donation_list(donations))
-            childFragmentManager.beginTransaction().setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left)
-                .add(map_layout.id, ViewDonationLocation.newInstance(Gson().toJson(donations[0]),
-                    don), "_view_donation_location").commit()
+            childFragmentManager.beginTransaction().setCustomAnimations(
+                R.anim.slide_in_right,
+                R.anim.slide_out_left
+            )
+                .add(
+                    map_layout.id, ViewDonationLocation.newInstance(
+                        Gson().toJson(donations[0]),
+                        don
+                    ), "_view_donation_location"
+                ).commit()
+        }
+
+
+        twitter.setOnClickListener {
+            val url = "http://www.twitter.com"
+            val i = Intent(Intent.ACTION_VIEW)
+            i.data = Uri.parse(url)
+            startActivity(i)
+        }
+
+        facebook.setOnClickListener {
+            val url = "http://www.facebook.com"
+            val i = Intent(Intent.ACTION_VIEW)
+            i.data = Uri.parse(url)
+            startActivity(i)
+        }
+
+        instagram.setOnClickListener {
+            val url = "http://www.instagram.com"
+            val i = Intent(Intent.ACTION_VIEW)
+            i.data = Uri.parse(url)
+            startActivity(i)
         }
 
         return va
@@ -183,7 +229,13 @@ class ViewOrganisation : Fragment() {
     internal inner class ActivitiesListAdapter : RecyclerView.Adapter<ViewHolderActivities>() {
 
         override fun onCreateViewHolder(viewGroup: ViewGroup, viewType: Int): ViewHolderActivities {
-            val vh = ViewHolderActivities(LayoutInflater.from(context).inflate(R.layout.recycler_item_activities, viewGroup, false))
+            val vh = ViewHolderActivities(
+                LayoutInflater.from(context).inflate(
+                    R.layout.recycler_item_activities,
+                    viewGroup,
+                    false
+                )
+            )
             return vh
         }
 
@@ -198,7 +250,7 @@ class ViewOrganisation : Fragment() {
 
     }
 
-    internal inner class ViewHolderActivities (view: View) : RecyclerView.ViewHolder(view) {
+    internal inner class ViewHolderActivities(view: View) : RecyclerView.ViewHolder(view) {
         val activity_explanation: TextView = view.findViewById(R.id.activity_explanation)
         val activity_time: TextView = view.findViewById(R.id.activity_time)
     }
@@ -206,13 +258,19 @@ class ViewOrganisation : Fragment() {
     companion object {
 
         @JvmStatic
-        fun newInstance(param1: String, param2: String, organisation: String, donation: String, activites: String) =
+        fun newInstance(
+            param1: String,
+            param2: String,
+            organisation: String,
+            donation: String,
+            activites: String
+        ) =
                 ViewOrganisation().apply {
                     arguments = Bundle().apply {
                         putString(ARG_PARAM1, param1)
                         putString(ARG_PARAM2, param2)
-                        putString(ARG_ORGANISATION,organisation)
-                        putString(ARG_DONATION,donation)
+                        putString(ARG_ORGANISATION, organisation)
+                        putString(ARG_DONATION, donation)
                         putString(ARG_ACTIVITIES, activites)
                     }
                 }

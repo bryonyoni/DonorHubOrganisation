@@ -58,7 +58,8 @@ class MainActivity : AppCompatActivity(),
         SetCollectionDate.SetCollectionDateInterface,
         PickMapLocation.PickMapLocationInterface,
         NewBatch.NewBatchInterface,
-        AddToBatch.addToBatchInterface
+        AddToBatch.addToBatchInterface,
+        ViewBatches.ViewBatchesInterface
 {
     val TAG = "MainActivity"
     val constants = Constants()
@@ -190,7 +191,9 @@ class MainActivity : AppCompatActivity(),
                         if(doc.contains("batch")){
                             don.batch_id = doc["batch"] as String
                         }
-                        donations.add(don)
+                        if(!don.is_taken_down){
+                            donations.add(don)
+                        }
                     }
                 }
             }
@@ -485,7 +488,7 @@ class MainActivity : AppCompatActivity(),
     override fun whenViewBatches() {
         supportFragmentManager.beginTransaction().setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left)
             .add(binding.money.id, ViewBatches.newInstance("","",
-                Gson().toJson(Batch.BatchList(batches)) ), _view_batches).commit()
+                Gson().toJson(Batch.BatchList(batches)), Gson().toJson(Donation.donation_list(donations))), _view_batches).commit()
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -615,10 +618,18 @@ class MainActivity : AppCompatActivity(),
             }
         }
 
+        var user = ""
+
+        for(item in users){
+            if(item.uid.equals(donation.uploader_id)){
+                user = Gson().toJson(item)
+            }
+        }
+
         var act_string = Gson().toJson(Donation.activities(org_activities))
 
         supportFragmentManager.beginTransaction().setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left)
-            .add(binding.money.id, ViewDonation.newInstance("", "", org, don, act_string), _view_donation).commit()
+            .add(binding.money.id, ViewDonation.newInstance("", "", org, don, act_string, user), _view_donation).commit()
     }
 
     override fun whenReloadEverything() {
@@ -870,10 +881,29 @@ class MainActivity : AppCompatActivity(),
         activity_ref.set(datas)
     }
 
+    override fun updateBatch(batch: Batch) {
+        showLoadingScreen()
+
+        var docData = db.collection("batches")
+                .document(batch.batch_id)
+
+        docData.update(mapOf(
+                "id" to docData.id,
+                "name" to batch.name,
+                "location" to Gson().toJson(batch.location)
+        )).addOnSuccessListener {
+            onBackPressed()
+            hideLoadingScreen()
+            Toast.makeText(applicationContext, "done!", Toast.LENGTH_SHORT).show()
+            loadDonationsAndOrganisations()
+        }
+
+    }
+
     override fun createNewBatch(organisation: Organisation, donation: Donation) {
         supportFragmentManager.beginTransaction().setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left)
             .add(binding.money.id, NewBatch.newInstance("","",Gson().toJson(organisation),
-                    Gson().toJson(donation)),_new_batch).commit()
+                    Gson().toJson(donation),""),_new_batch).commit()
     }
 
     override fun selectBatch(batch: Batch, organisation: Organisation, donation: Donation) {
@@ -896,12 +926,18 @@ class MainActivity : AppCompatActivity(),
 
         var datas = mapOf(
                 "activity_id" to activity_ref.id,
-                "explanation" to "Donation has been set to batch: ${title}.",
+                "explanation" to "Donation has been set to batch: ${batch.name}.",
                 "timestamp" to Calendar.getInstance().timeInMillis,
                 "donation" to donation.donation_id
         )
 
         activity_ref.set(datas)
+    }
+
+    override fun editBatch(batch: Batch) {
+        supportFragmentManager.beginTransaction().setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left)
+                .add(binding.money.id, NewBatch.newInstance("","","",
+                        "",Gson().toJson(batch)),_new_batch).commit()
     }
 
 }
