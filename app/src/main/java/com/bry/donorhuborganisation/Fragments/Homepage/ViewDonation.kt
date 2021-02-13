@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
+import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bry.donorhuborganisation.Constants
@@ -73,6 +74,11 @@ class ViewDonation : Fragment() {
         val uploader_textview: TextView = va.findViewById(R.id.uploader_textview)
         val uploader_number_textview: TextView = va.findViewById(R.id.uploader_number_textview)
         val uploader_email_textview: TextView = va.findViewById(R.id.uploader_email_textview)
+        val quantity_mass_time: TextView = va.findViewById(R.id.quantity_mass_time)
+
+        val location_container: CardView = va.findViewById(R.id.location_container)
+        val map_layout: RelativeLayout = va.findViewById(R.id.map_layout)
+        val is_taken_down: TextView = va.findViewById(R.id.is_taken_down)
 
         donation_desc.text = donation.description
         val age = Constants().construct_elapsed_time(Calendar.getInstance().timeInMillis - donation.creation_time)
@@ -102,6 +108,29 @@ class ViewDonation : Fragment() {
         uploader_textview.text = user.name
         uploader_number_textview.text = "${user.phone.country_number_code} ${user.phone.digit_number}"
         uploader_email_textview.text = user.email
+
+
+        if(donation.quantity!=null) {
+            quantity_mass_time.visibility = View.VISIBLE
+            quantity_mass_time.text = "${donation.quantity}(items) - ${donation.mass} each"
+        }
+
+        if(donation.location!=null) {
+            if (donation.location.latitude != 0.0 && donation.location.longitude != 0.0) {
+                location_container.visibility = View.VISIBLE
+
+                var don = Gson().toJson(donation)
+                var don_list = Gson().toJson(Donation.donation_list(ArrayList<Donation>()))
+                childFragmentManager.beginTransaction().setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left)
+                        .add(map_layout.id, ViewDonationLocation.newInstance(don,don_list), "_view_donation_location").commit()
+            }
+        }
+
+        if(donation.is_taken_down){
+            is_taken_down.visibility = View.VISIBLE
+        }else{
+            is_taken_down.visibility = View.INVISIBLE
+        }
 
         return va
     }

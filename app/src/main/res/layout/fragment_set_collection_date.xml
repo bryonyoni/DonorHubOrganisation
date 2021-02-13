@@ -20,16 +20,35 @@
 
     </RelativeLayout>
 
-    <RelativeLayout
+    <LinearLayout
         android:layout_width="match_parent"
         android:paddingTop="20dp"
         android:paddingBottom="20dp"
+        android:orientation="vertical"
         android:paddingHorizontal="25dp"
         android:layout_height="match_parent">
+
+        <!--Top title part-->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:id="@+id/donation_desc"
+                android:layout_width="wrap_content"
+                android:textSize="22sp"
+                android:textColor="@color/colorAccent"
+                android:layout_centerVertical="true"
+                android:layout_height="wrap_content"
+                android:text="3 red sweaters" />
+
+
+        </RelativeLayout>
 
         <ScrollView
             android:layout_width="match_parent"
             android:scrollbars="none"
+            android:layout_marginTop="20dp"
             android:layout_height="match_parent">
 
             <LinearLayout
@@ -37,27 +56,10 @@
                 android:orientation="vertical"
                 android:layout_height="wrap_content">
 
-                <!--Top title part-->
-                <RelativeLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
-
-                    <TextView
-                        android:id="@+id/donation_desc"
-                        android:layout_width="wrap_content"
-                        android:textSize="22sp"
-                        android:textColor="@color/colorAccent"
-                        android:layout_centerVertical="true"
-                        android:layout_height="wrap_content"
-                        android:text="3 red sweaters" />
-
-
-                </RelativeLayout>
-
                 <TextView
                     android:id="@+id/donation_time"
                     android:layout_width="wrap_content"
-                    android:layout_marginTop="20dp"
+
                     android:textSize="15sp"
                     android:layout_height="wrap_content"
                     android:text="Request sent 3 weeks ago." />
@@ -131,6 +133,6 @@
         </ScrollView>
 
 
-    </RelativeLayout>
+    </LinearLayout>
 
 </FrameLayout>

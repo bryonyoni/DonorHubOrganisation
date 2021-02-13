@@ -1,16 +1,17 @@
 package com.bry.donorhuborganisation.Fragments.Homepage
 
+import android.app.AlertDialog
 import android.content.Context
+import android.content.DialogInterface
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
+import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.RelativeLayout
-import android.widget.TextView
+import android.widget.*
 import androidx.cardview.widget.CardView
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -20,6 +21,7 @@ import com.bry.donorhuborganisation.Model.Donation
 import com.bry.donorhuborganisation.Model.Organisation
 import com.bry.donorhuborganisation.R
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
 import com.google.gson.Gson
@@ -48,12 +50,12 @@ class ViewOrganisation : Fragment() {
             param2 = it.getString(ARG_PARAM2)
             organisation = Gson().fromJson(it.getString(ARG_ORGANISATION), Organisation::class.java)
             donations = Gson().fromJson(
-                it.getString(ARG_DONATION) as String,
-                Donation.donation_list::class.java
+                    it.getString(ARG_DONATION) as String,
+                    Donation.donation_list::class.java
             ).donation_list
             activities = Gson().fromJson(
-                it.getString(ARG_ACTIVITIES),
-                Donation.activities::class.java
+                    it.getString(ARG_ACTIVITIES),
+                    Donation.activities::class.java
             ).activities
         }
     }
@@ -68,9 +70,9 @@ class ViewOrganisation : Fragment() {
     var onImagePicked: (pic_name: Bitmap) -> Unit = {}
 
     override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
+            inflater: LayoutInflater,
+            container: ViewGroup?,
+            savedInstanceState: Bundle?
     ): View? {
         // Inflate the layout for this fragment
         val va = inflater.inflate(R.layout.fragment_view_organisation, container, false)
@@ -189,37 +191,144 @@ class ViewOrganisation : Fragment() {
 
             var don = Gson().toJson(Donation.donation_list(donations))
             childFragmentManager.beginTransaction().setCustomAnimations(
-                R.anim.slide_in_right,
-                R.anim.slide_out_left
+                    R.anim.slide_in_right,
+                    R.anim.slide_out_left
             )
                 .add(
-                    map_layout.id, ViewDonationLocation.newInstance(
+                        map_layout.id, ViewDonationLocation.newInstance(
                         Gson().toJson(donations[0]),
                         don
-                    ), "_view_donation_location"
+                ), "_view_donation_location"
                 ).commit()
         }
 
 
         twitter.setOnClickListener {
-            val url = "http://www.twitter.com"
-            val i = Intent(Intent.ACTION_VIEW)
-            i.data = Uri.parse(url)
-            startActivity(i)
+//            val url = "http://www.twitter.com"
+//            val i = Intent(Intent.ACTION_VIEW)
+//            i.data = Uri.parse(url)
+//            startActivity(i)
+
+            val builder: AlertDialog.Builder = AlertDialog.Builder(context)
+            builder.setTitle("Set Twitter page")
+
+// Set up the input
+
+// Set up the input
+            val input = EditText(context)
+// Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
+// Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
+            input.inputType = InputType.TYPE_CLASS_TEXT
+            builder.setView(input)
+
+// Set up the buttons
+
+// Set up the buttons
+            builder.setPositiveButton("OK", DialogInterface.OnClickListener { dialog, which ->
+                var m_Text = input.text.toString()
+
+                if(m_Text.equals("")){
+                    input.setError("type something!")
+                }else{
+                    organisation.twitter = m_Text
+                    Firebase.firestore.collection("organisations")
+                            .document(organisation.org_id)
+                            .update(mapOf(
+                                    "org_obj" to Gson().toJson(organisation)
+                            ))
+                    Toast.makeText(context, "set!", Toast.LENGTH_SHORT).show()
+                    dialog.dismiss()
+                }
+
+
+            })
+            builder.setNegativeButton("Cancel", DialogInterface.OnClickListener { dialog, which -> dialog.cancel() })
+
+            builder.show()
         }
 
         facebook.setOnClickListener {
-            val url = "http://www.facebook.com"
-            val i = Intent(Intent.ACTION_VIEW)
-            i.data = Uri.parse(url)
-            startActivity(i)
+//            val url = "http://www.facebook.com"
+//            val i = Intent(Intent.ACTION_VIEW)
+//            i.data = Uri.parse(url)
+//            startActivity(i)
+
+            val builder: AlertDialog.Builder = AlertDialog.Builder(context)
+            builder.setTitle("Set Facebook page")
+
+// Set up the input
+
+// Set up the input
+            val input = EditText(context)
+// Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
+// Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
+            input.inputType = InputType.TYPE_CLASS_TEXT
+            builder.setView(input)
+
+// Set up the buttons
+
+// Set up the buttons
+            builder.setPositiveButton("OK", DialogInterface.OnClickListener { dialog, which ->
+                var m_Text = input.text.toString()
+
+                if(m_Text.equals("")){
+                    input.setError("type something!")
+                }else{
+                    organisation.facebook = m_Text
+                    Firebase.firestore.collection("organisations")
+                            .document(organisation.org_id)
+                            .update(mapOf(
+                                    "org_obj" to Gson().toJson(organisation)
+                            ))
+                    Toast.makeText(context, "set!", Toast.LENGTH_SHORT).show()
+                    dialog.dismiss()
+                }
+            })
+            builder.setNegativeButton("Cancel", DialogInterface.OnClickListener { dialog, which -> dialog.cancel() })
+
+            builder.show()
         }
 
         instagram.setOnClickListener {
-            val url = "http://www.instagram.com"
-            val i = Intent(Intent.ACTION_VIEW)
-            i.data = Uri.parse(url)
-            startActivity(i)
+//            val url = "http://www.instagram.com"
+//            val i = Intent(Intent.ACTION_VIEW)
+//            i.data = Uri.parse(url)
+//            startActivity(i)
+
+            val builder: AlertDialog.Builder = AlertDialog.Builder(context)
+            builder.setTitle("Set Instagram page")
+
+// Set up the input
+
+// Set up the input
+            val input = EditText(context)
+// Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
+// Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
+            input.inputType = InputType.TYPE_CLASS_TEXT
+            builder.setView(input)
+
+// Set up the buttons
+
+// Set up the buttons
+            builder.setPositiveButton("OK", DialogInterface.OnClickListener { dialog, which ->
+                var m_Text = input.text.toString()
+
+                if(m_Text.equals("")){
+                    input.setError("type something!")
+                }else{
+                    organisation.instagram = m_Text
+                    Firebase.firestore.collection("organisations")
+                            .document(organisation.org_id)
+                            .update(mapOf(
+                                    "org_obj" to Gson().toJson(organisation)
+                            ))
+                    Toast.makeText(context, "set!", Toast.LENGTH_SHORT).show()
+                    dialog.dismiss()
+                }
+            })
+            builder.setNegativeButton("Cancel", DialogInterface.OnClickListener { dialog, which -> dialog.cancel() })
+
+            builder.show()
         }
 
         return va
@@ -230,11 +339,11 @@ class ViewOrganisation : Fragment() {
 
         override fun onCreateViewHolder(viewGroup: ViewGroup, viewType: Int): ViewHolderActivities {
             val vh = ViewHolderActivities(
-                LayoutInflater.from(context).inflate(
-                    R.layout.recycler_item_activities,
-                    viewGroup,
-                    false
-                )
+                    LayoutInflater.from(context).inflate(
+                            R.layout.recycler_item_activities,
+                            viewGroup,
+                            false
+                    )
             )
             return vh
         }
@@ -259,11 +368,11 @@ class ViewOrganisation : Fragment() {
 
         @JvmStatic
         fun newInstance(
-            param1: String,
-            param2: String,
-            organisation: String,
-            donation: String,
-            activites: String
+                param1: String,
+                param2: String,
+                organisation: String,
+                donation: String,
+                activites: String
         ) =
                 ViewOrganisation().apply {
                     arguments = Bundle().apply {

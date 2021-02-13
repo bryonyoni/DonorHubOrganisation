@@ -60,7 +60,9 @@ class PickOrganisation : Fragment() {
 
         when_data_updated = {
             organisations = it
-            organisations_recyclerview.adapter?.notifyDataSetChanged()
+
+            organisations_recyclerview.adapter = myOrganisationsListAdapter()
+            organisations_recyclerview.layoutManager = LinearLayoutManager(context)
         }
 
         return va

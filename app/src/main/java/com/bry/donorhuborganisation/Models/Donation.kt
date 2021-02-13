@@ -13,6 +13,8 @@ class Donation(var description: String, var creation_time: Long, var donation_id
     var collectors: Collectors? = null
     var pick_up_time: Long = 0
     var batch_id = ""
+    var mass = ""
+    var quantity = ""
 
     class donation_list(var donation_list: ArrayList<Donation>)
 

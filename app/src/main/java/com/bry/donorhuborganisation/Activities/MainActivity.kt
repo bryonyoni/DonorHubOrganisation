@@ -160,6 +160,7 @@ class MainActivity : AppCompatActivity(),
         activities.clear()
 
         db.collection("organisations").get().addOnSuccessListener {
+            organisations.clear()
             if(!it.isEmpty){
                 for(doc in it.documents){
                     if(doc.contains("org_obj")){
@@ -175,6 +176,7 @@ class MainActivity : AppCompatActivity(),
         }
 
         db.collection("donations").get().addOnSuccessListener {
+            donations.clear()
             if(!it.isEmpty){
                 for(doc in it.documents){
                     if(doc.contains("don_obj")){
@@ -203,6 +205,7 @@ class MainActivity : AppCompatActivity(),
         }
 
         db.collection(constants.coll_users).get().addOnSuccessListener {
+            users.clear()
             for(user in it.documents) {
                 val name = user.get("name") as String
                 val email = user.get("email") as String
@@ -217,6 +220,7 @@ class MainActivity : AppCompatActivity(),
         }
 
         db.collection("batches").get().addOnSuccessListener {
+            batches.clear()
             if(!it.isEmpty){
                 for(doc in it.documents){
                     var latLng = Gson().fromJson(doc["location"] as String, LatLng::class.java)
@@ -226,6 +230,7 @@ class MainActivity : AppCompatActivity(),
         }
 
         db.collection("activities").get().addOnSuccessListener {
+            activities.clear()
             if(!it.isEmpty){
                 for(doc in it.documents){
                     var activity_id = doc["activity_id"] as String
@@ -240,6 +245,11 @@ class MainActivity : AppCompatActivity(),
     }
 
     fun whenDoneLoadingData(){
+        if(!has_loaded_for_first_time){
+            has_loaded_for_first_time = true
+            openMyOrganisation()
+        }
+
         if(supportFragmentManager.findFragmentByTag(_new_donations)!=null){
             (supportFragmentManager.findFragmentByTag(_new_donations) as NewDonations).when_data_updated(donations)
         }
@@ -247,10 +257,7 @@ class MainActivity : AppCompatActivity(),
             (supportFragmentManager.findFragmentByTag(_pick_organisation) as PickOrganisation).when_data_updated(organisations)
         }
 
-        if(!has_loaded_for_first_time){
-            has_loaded_for_first_time = true
-            openMyOrganisation()
-        }
+        Toast.makeText(applicationContext, "Done loading data", Toast.LENGTH_SHORT).show()
     }
 
 
@@ -280,8 +287,7 @@ class MainActivity : AppCompatActivity(),
 
                 supportFragmentManager.beginTransaction().setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left)
                         .replace(binding.money.id, ViewOrganisation.newInstance("", "", org_string
-                                , Gson().toJson(Donation.donation_list(donations)), act_string)
-                                , _view_organisation).commit()
+                                , Gson().toJson(Donation.donation_list(donations)), act_string), _view_organisation).commit()
             }
         }
 
@@ -516,7 +522,7 @@ class MainActivity : AppCompatActivity(),
         val orgs = Gson().toJson(organisation)
 
         supportFragmentManager.beginTransaction().setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left)
-                .replace(binding.money.id, OrganisationPasscode.newInstance("", "",orgs)
+                .add(binding.money.id, OrganisationPasscode.newInstance("", "",orgs)
                         , _organisation_passcode).commit()
     }
 

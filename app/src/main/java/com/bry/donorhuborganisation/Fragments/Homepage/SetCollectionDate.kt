@@ -73,7 +73,8 @@ class SetCollectionDate : Fragment() {
         val people_recyclerview: RecyclerView = va.findViewById(R.id.people_recyclerview)
 
         donation_desc.text = donation.description
-        donation_time.text = Constants().construct_elapsed_time(donation.creation_time)
+        val age = Constants().construct_elapsed_time(Calendar.getInstance().timeInMillis - donation.creation_time)
+        donation_time.text = "Request sent $age ago."
 
         donation_images_recyclerview.adapter = ImageListAdapter(donation)
         donation_images_recyclerview.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
@@ -113,7 +114,7 @@ class SetCollectionDate : Fragment() {
             val collector = collectors[position]
 
             v.user_name.text = collector.name
-            v.pick_user_exp.text = "Pick ${collector.name} to do the pickup."
+            v.pick_user_exp.text = "Set ${collector.name} to do the pickup."
 
             v.pick_user.setOnClickListener {
                 whenUserPicked(collector)
