@@ -28,6 +28,9 @@ class Constants{
     val first_time_launch = "first_time_launch"
     val otp_codes = "otp_codes"
     val code_instances = "code_instances"
+    val blockchain_data = "blockchain_data3"
+    val priv_key = "priv_key3"
+    val pub_key = "pub_key3"
 
 
     fun getCurrency(country_code: String):String{
@@ -166,6 +169,44 @@ class Constants{
         fun clear_local_images(){
             applicationContext.getSharedPreferences(local_image, Context.MODE_PRIVATE).edit().clear().apply()
         }
+
+
+        fun set_block_chain_in_Shared_prefs(data: String){
+            val pref: SharedPreferences = applicationContext.getSharedPreferences(blockchain_data, Context.MODE_PRIVATE)
+            pref.edit().putString(blockchain_data,data).apply()
+        }
+
+        fun get_blockchain_from_shared_prefs(): String{
+            val pref: SharedPreferences = applicationContext.getSharedPreferences(blockchain_data, Context.MODE_PRIVATE)
+            val va = pref.getString(blockchain_data, "")
+
+            return va!!
+        }
+
+        fun stashPrivKey(data: String){
+            val pref: SharedPreferences = applicationContext.getSharedPreferences(priv_key, Context.MODE_PRIVATE)
+            pref.edit().putString(priv_key,data).apply()
+        }
+
+        fun fetchPrivKey(): String{
+            val pref: SharedPreferences = applicationContext.getSharedPreferences(priv_key, Context.MODE_PRIVATE)
+            val va = pref.getString(priv_key, "")
+
+            return va!!
+        }
+
+        fun stashPubKey(data: String){
+            val pref: SharedPreferences = applicationContext.getSharedPreferences(pub_key, Context.MODE_PRIVATE)
+            pref.edit().putString(pub_key,data).apply()
+        }
+
+        fun fetchPubKey(): String{
+            val pref: SharedPreferences = applicationContext.getSharedPreferences(pub_key, Context.MODE_PRIVATE)
+            val va = pref.getString(pub_key, "")
+
+            return va!!
+        }
+
     }
 
     inner class user(var phone: Number, val email: String, var name: String, val sign_up_time: Long, val uid: String): Serializable

@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.ConnectivityManager
@@ -29,7 +30,9 @@ import com.bry.donorhuborganisation.Model.Donation
 import com.bry.donorhuborganisation.Model.Number
 import com.bry.donorhuborganisation.Model.Organisation
 import com.bry.donorhuborganisation.Models.Batch
+import com.bry.donorhuborganisation.Models.Block
 import com.bry.donorhuborganisation.Models.Collectors
+import com.bry.donorhuborganisation.Models.SymmetricEncryption
 import com.bry.donorhuborganisation.R
 import com.bry.donorhuborganisation.databinding.ActivityMainBinding
 import com.google.android.gms.location.*
@@ -41,7 +44,12 @@ import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.gson.Gson
+import java.nio.charset.StandardCharsets
+import java.security.*
+import java.security.spec.PKCS8EncodedKeySpec
+import java.security.spec.X509EncodedKeySpec
 import java.util.*
+import javax.crypto.Cipher
 import kotlin.collections.ArrayList
 
 class MainActivity : AppCompatActivity(),
@@ -94,13 +102,28 @@ class MainActivity : AppCompatActivity(),
     var has_loaded_for_first_time = false
 
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         val actionBar: ActionBar = supportActionBar!!
         actionBar.hide()
+
+        Security.addProvider(org.spongycastle.jce.provider.BouncyCastleProvider())
+
+        val data = constants.SharedPreferenceManager(applicationContext).get_blockchain_from_shared_prefs()
+        if(!data.equals("")){
+            val obj = Gson().fromJson(data, blockchain_class::class.java)
+            blockchain = obj.blockchain
+            donationHashMap = obj.donationHashMap
+        }
+
+        val pubKey = constants.SharedPreferenceManager(applicationContext).fetchPubKey()
+        if(pubKey.equals("")){
+            //we need to gen a pub key
+            generateKeyPair()
+        }
+
 
         if(constants.SharedPreferenceManager(applicationContext).getPersonalInfo() == null){
             supportFragmentManager.beginTransaction().setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left)
@@ -110,8 +133,32 @@ class MainActivity : AppCompatActivity(),
 //            openMyOrganisation()
         }
 
-
 //        Toast.makeText(applicationContext, "${Calendar.getInstance().time}", Toast.LENGTH_SHORT).show()
+    }
+
+    fun generateKeyPair() {
+        try {
+            val keyGen: KeyPairGenerator = KeyPairGenerator.getInstance("RSA")
+//            val random: SecureRandom = SecureRandom.getInstance("SHA1PRNG")
+//            val ecSpec = ECGenParameterSpec("secp224k1")
+
+            // Initialize the key generator and generate a KeyPair
+            keyGen.initialize(4096) //256 bytes provides an acceptable security level
+            val keyPair: KeyPair = keyGen.generateKeyPair()
+
+            // Set the public and private keys from the keyPair
+            var privateKey = keyPair.getPrivate()
+            var publicKey = keyPair.getPublic()
+
+            val enc_pub = Base64.getEncoder().encodeToString(publicKey?.encoded)
+            val enc_priv = Base64.getEncoder().encodeToString(privateKey?.encoded)
+
+            constants.SharedPreferenceManager(applicationContext).stashPrivKey(enc_priv)
+            constants.SharedPreferenceManager(applicationContext).stashPubKey(enc_pub)
+
+        } catch (e: java.lang.Exception) {
+            throw RuntimeException(e)
+        }
     }
 
     override fun onBackPressed() {
@@ -179,23 +226,68 @@ class MainActivity : AppCompatActivity(),
             donations.clear()
             if(!it.isEmpty){
                 for(doc in it.documents){
-                    if(doc.contains("don_obj")){
-                        val don = Gson().fromJson(doc["don_obj"] as String, Donation::class.java)
-                        if(doc.contains("taken_down")){
-                            don.is_taken_down = doc["taken_down"] as Boolean
+                    if(doc.contains("don_obj") && checkIfDonationIsValid(doc["don_obj"] as String, doc.id)
+                        && doc.contains("signature")
+                    ){
+                        val kfdec = KeyFactory.getInstance("RSA", "SC")
+                        val encPubKey = doc["uploader_pub_key"] as String
+                        val x509ksdec = X509EncodedKeySpec(Base64.getDecoder().decode(encPubKey))
+                        val uploaderPub: PublicKey = kfdec.generatePublic(x509ksdec)
+
+                        val dec_sig = Base64.getDecoder().decode(doc["signature"] as String)
+
+                        val encPriKey = constants.SharedPreferenceManager(applicationContext).fetchPrivKey()
+                        var p8ks = PKCS8EncodedKeySpec(Base64.getDecoder().decode(encPriKey))
+                        val kf2 = KeyFactory.getInstance("RSA", "SC")
+                        val privKeyA = kf2.generatePrivate(p8ks)
+
+                        val signature_word = doc["uploader"] as String
+
+//                        Log.e(TAG, "compare .........--------------")
+//                        Log.e(TAG,"signature_word(uploader) --- ${signature_word}")
+//                        Log.e(TAG,"uploaderPub key --- ${doc["uploader_pub_key"] as String}")
+//                        Log.e(TAG, "locally stashed pub key --- ${encPubKey}")
+//                        Log.e(TAG,"signature  --- ${doc["signature"] as String}")
+
+                        Log.e(TAG, "verifying the signature received for donation object id: ${doc.id}")
+                        val isSignatureValiddec = verifySignature(signature_word, uploaderPub, dec_sig)
+
+                        Log.e(TAG, "is their signature valid??: ${isSignatureValiddec}")
+                        if(isSignatureValiddec) {
+                            val decryptdec = Cipher.getInstance("RSA/ECB/PKCS1Padding")
+                            decryptdec.init(Cipher.DECRYPT_MODE, privKeyA)
+
+                            //try using encrypted message as string
+                            val decryptedEncMsgdec = Base64.getDecoder().decode(doc["enc_data_key"] as String)
+                            val decryptedMessagedec = String(decryptdec.doFinal(decryptedEncMsgdec), StandardCharsets.UTF_8)
+                            val mySecureData = runSymmetricDecryption((doc["don_obj"] as String), decryptedMessagedec)
+//                            Log.e(TAG, "decrypted key: ${decryptedMessagedec} message" +
+//                                    " ${mySecureData}")
+
+                            val don = Gson().fromJson(mySecureData, Donation::class.java)
+
+                            Log.e(TAG, "Decrypted the donation: ${don.donation_id}; ${don.description}")
+
+                            if (doc.contains("taken_down")) {
+                                don.is_taken_down = doc["taken_down"] as Boolean
+                            }
+                            if (doc.contains("collectors")) {
+                                don.collectors = Gson().fromJson(doc["collectors"] as String, Collectors::class.java)
+                            }
+                            if (doc.contains("pick_up_time")) {
+                                don.pick_up_time = doc["pick_up_time"] as Long
+                            }
+                            if (doc.contains("batch")) {
+                                don.batch_id = doc["batch"] as String
+                            }
+                            if (!don.is_taken_down) {
+                                donations.add(don)
+                            }
+                        }else{
+                            Log.e(TAG, "Signature for ${doc.id} is not valid........")
                         }
-                        if(doc.contains("collectors")){
-                            don.collectors = Gson().fromJson(doc["collectors"] as String, Collectors::class.java)
-                        }
-                        if(doc.contains("pick_up_time")){
-                            don.pick_up_time = doc["pick_up_time"] as Long
-                        }
-                        if(doc.contains("batch")){
-                            don.batch_id = doc["batch"] as String
-                        }
-                        if(!don.is_taken_down){
-                            donations.add(don)
-                        }
+                    }else{
+                        Log.e(TAG, "Ignoring donation id: ${doc.id}")
                     }
                 }
             }
@@ -244,6 +336,15 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+
+        constants.SharedPreferenceManager(applicationContext)
+            .set_block_chain_in_Shared_prefs(Gson().toJson(blockchain_class(blockchain,donationHashMap)))
+    }
+
+    class blockchain_class(var blockchain: ArrayList<Block>, var donationHashMap: HashMap<String, String>)
+
     fun whenDoneLoadingData(){
         if(!has_loaded_for_first_time){
             has_loaded_for_first_time = true
@@ -288,6 +389,10 @@ class MainActivity : AppCompatActivity(),
                 supportFragmentManager.beginTransaction().setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left)
                         .replace(binding.money.id, ViewOrganisation.newInstance("", "", org_string
                                 , Gson().toJson(Donation.donation_list(donations)), act_string), _view_organisation).commit()
+
+                db.collection("organisations").document(organ.org_id).update(mapOf(
+                        "pub_key" to constants.SharedPreferenceManager(applicationContext).fetchPubKey()
+                ))
             }
         }
 
@@ -944,6 +1049,147 @@ class MainActivity : AppCompatActivity(),
         supportFragmentManager.beginTransaction().setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left)
                 .add(binding.money.id, NewBatch.newInstance("","","",
                         "",Gson().toJson(batch)),_new_batch).commit()
+    }
+
+
+    private var blockchain: ArrayList<Block> = ArrayList()
+    private var donationHashMap: HashMap<String, String> = HashMap()
+
+    fun checkIfDonationIsValid(donation_data: String, donation_id: String): Boolean{
+        if(donationHashMap.containsKey(donation_id)){
+            //the donation is in the chain
+            var its_block = getBlockForDonation(donation_id)
+            if(its_block!=null){
+                //returns false if data has been tampered with since it would generate different data
+                val is_valid = its_block.checkIfDataGeneratesSameHash(donation_data)
+                Log.e(TAG, "Is the data that's been received valid as by my blockchain?? : ${is_valid}")
+                Log.e(TAG, "If invalid, discarded")
+                return is_valid
+            }
+
+        }else{
+            //the donation is not in the chain
+            Log.e(TAG, "The donation not in chain ${donation_id}")
+            if(blockchain.isEmpty()){
+                val new_block = Block(donation_data, "0", donation_id)
+                blockchain.add(new_block)
+                donationHashMap.put(donation_id, new_block.calculateHash())
+            }else {
+                val last_block = blockchain.last()
+                val new_block = Block(donation_data, last_block.calculateHash(), donation_id)
+                blockchain.add(new_block)
+                donationHashMap.put(donation_id,new_block.calculateHash())
+            }
+            return true
+        }
+
+        return false
+    }
+
+    fun getBlockForDonation(donation_id: String): Block?{
+        for(item in blockchain){
+            if(item.donation_id.equals(donation_id)){
+                return item
+            }
+        }
+        return null
+    }
+
+
+    fun decryptDataIfPossible(data: String, privateKey: String, signature: String, author_pubKey: String): String{
+        val kf = KeyFactory.getInstance("RSA", "SC")
+        var p8ks = PKCS8EncodedKeySpec(Base64.getDecoder().decode(privateKey))
+        val myPrivKey = kf.generatePrivate(p8ks)
+
+        var p8ks_auth = X509EncodedKeySpec(Base64.getDecoder().decode(author_pubKey))
+        val authPubKey = kf.generatePublic(p8ks_auth)
+
+        if(verifySignature(data, authPubKey, signature.toByteArray(StandardCharsets.UTF_8))){
+            //the signature matches, so the data was written by the expected author
+            val decrypt = Cipher.getInstance("RSA/ECB/PKCS1Padding")
+            decrypt.init(Cipher.DECRYPT_MODE, myPrivKey)
+            val decryptedData = String(decrypt.doFinal(data.toByteArray(StandardCharsets.UTF_8)), StandardCharsets.UTF_8)
+            Log.e(TAG, "decrypted data: ${decryptedData}")
+
+            return decryptedData
+        }else{
+            Log.e(TAG, "signature mismatch, data not from author")
+
+            val decrypt = Cipher.getInstance("RSA/ECB/PKCS1Padding")
+            decrypt.init(Cipher.DECRYPT_MODE, myPrivKey)
+            val decryptedData = String(decrypt.doFinal(data.toByteArray(StandardCharsets.UTF_8)), StandardCharsets.UTF_8)
+            Log.e(TAG, "decrypted data: ${decryptedData}")
+
+            return decryptedData
+        }
+
+        return ""
+    }
+
+    fun applyECDSASig(privateKey: PrivateKey?, input: String): ByteArray? {
+        val dsa: Signature
+        var output: ByteArray? = ByteArray(0)
+        try {
+            dsa = Signature.getInstance("RSA", "SC")
+            dsa.initSign(privateKey)
+            val strByte = input.toByteArray(StandardCharsets.UTF_8)
+            dsa.update(strByte)
+            val realSig = dsa.sign()
+            output = realSig
+        } catch (e: java.lang.Exception) {
+            throw java.lang.RuntimeException(e)
+        }
+        return output
+    }
+
+    fun verifyECDSASig(publicKey: PublicKey?, data: String, signature: ByteArray?): Boolean {
+        return try {
+            val ecdsaVerify = Signature.getInstance("RSA", "SC")
+            ecdsaVerify.initVerify(publicKey)
+            ecdsaVerify.update(data.toByteArray(StandardCharsets.UTF_8))
+            ecdsaVerify.verify(signature)
+        } catch (e: java.lang.Exception) {
+            throw java.lang.RuntimeException(e)
+        }
+    }
+
+
+    fun generateSignature(privateKey: PrivateKey?, data: String): ByteArray? {
+//        val data: String = StringUtil.getStringFromKey(sender) +
+//                StringUtil.getStringFromKey(reciepient).toString() +
+//                java.lang.Float.toString(value)
+        return applyECDSASig(privateKey, data)
+    }
+
+    fun verifySignature(data: String, publicKey: PublicKey, signature: ByteArray): Boolean {
+//        val data: String = StringUtil.getStringFromKey(sender) +
+//                StringUtil.getStringFromKey(reciepient).toString() + java.lang.Float.toString(value)
+        return verifyECDSASig(publicKey, data, signature)
+    }
+
+    fun runSymmetricEncryption(data: String, code: String): String{
+        val key = code
+
+        val plaintext = data
+        val symmetricEncryption = SymmetricEncryption()
+
+        //encode
+        val encrypted = symmetricEncryption.encrypt(
+            plaintext, key
+        )
+
+        return encrypted
+    }
+
+    fun runSymmetricDecryption(data: String, code: String): String{
+        val symmetricEncryption = SymmetricEncryption()
+
+        val decrypted = symmetricEncryption.decrypt(
+            ciphertext = data,
+            secret = code
+        )
+
+        return decrypted
     }
 
 }
