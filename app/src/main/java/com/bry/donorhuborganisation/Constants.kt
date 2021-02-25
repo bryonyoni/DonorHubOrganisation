@@ -31,6 +31,7 @@ class Constants{
     val blockchain_data = "blockchain_data3"
     val priv_key = "priv_key3"
     val pub_key = "pub_key3"
+    val org_id = "org_id"
 
 
     fun getCurrency(country_code: String):String{
@@ -203,6 +204,18 @@ class Constants{
         fun fetchPubKey(): String{
             val pref: SharedPreferences = applicationContext.getSharedPreferences(pub_key, Context.MODE_PRIVATE)
             val va = pref.getString(pub_key, "")
+
+            return va!!
+        }
+
+        fun stashOrgId(data: String){
+            val pref: SharedPreferences = applicationContext.getSharedPreferences(org_id, Context.MODE_PRIVATE)
+            pref.edit().putString(org_id,data).apply()
+        }
+
+        fun fetchOrgId(): String{
+            val pref: SharedPreferences = applicationContext.getSharedPreferences(org_id, Context.MODE_PRIVATE)
+            val va = pref.getString(org_id, "")
 
             return va!!
         }

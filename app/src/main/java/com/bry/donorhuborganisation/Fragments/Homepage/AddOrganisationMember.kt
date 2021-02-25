@@ -13,6 +13,7 @@ import com.bry.donorhuborganisation.Constants
 import com.bry.donorhuborganisation.Model.Organisation
 import com.bry.donorhuborganisation.R
 import com.google.gson.Gson
+import org.w3c.dom.Text
 import java.util.*
 
 
@@ -35,7 +36,7 @@ class AddOrganisationMember : Fragment() {
         }
     }
 
-    var isPasscodeSet: () -> Unit = {}
+    var isPasscodeSet: (symm_key: String) -> Unit = {}
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -51,6 +52,7 @@ class AddOrganisationMember : Fragment() {
         // Inflate the layout for this fragment
         val va = inflater.inflate(R.layout.fragment_add_organisation_member, container, false)
         val new_code: TextView = va.findViewById(R.id.new_code)
+        val key_code: TextView = va.findViewById(R.id.key_code)
         val reload_layout: RelativeLayout = va.findViewById(R.id.reload_layout)
 
 
@@ -65,12 +67,16 @@ class AddOrganisationMember : Fragment() {
         isPasscodeSet = {
             Handler().postDelayed({
                 new_code.visibility = View.GONE
+                key_code.visibility = View.GONE
                 new_code.text = ""
+                key_code.text = ""
                 reload_layout.visibility = View.VISIBLE
 
             }, Constants().otp_expiration_time)
 
             reload_layout.visibility = View.GONE
+            key_code.visibility = View.VISIBLE
+            key_code.text = "Key Passcode : ${it}"
         }
 
         return va

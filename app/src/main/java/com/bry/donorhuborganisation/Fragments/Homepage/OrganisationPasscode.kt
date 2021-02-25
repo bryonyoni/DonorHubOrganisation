@@ -49,19 +49,26 @@ class OrganisationPasscode : Fragment() {
         val va = inflater.inflate(R.layout.fragment_organisation_passcode, container, false)
         val PasswordEditText: EditText = va.findViewById(R.id.PasswordEditText)
         val continue_layout: RelativeLayout = va.findViewById(R.id.continue_layout)
+        val keyPasswordEditText: EditText = va.findViewById(R.id.keyPasswordEditText)
 
 
         continue_layout.setOnClickListener {
             val code = PasswordEditText.text.toString().trim()
+            val key_code = keyPasswordEditText.text.toString().trim()
             if(code.equals("")){
                 PasswordEditText.error = "Type something"
-            }else{
-                listener.onOrganisationPasscodeSubmitPasscode(code,the_organisation)
+            }else if(key_code.equals("")){
+                keyPasswordEditText.setError("Type something")
+            }
+            else{
+                listener.onOrganisationPasscodeSubmitPasscode(code,the_organisation, key_code)
+//                listener.onOrganisationKeyPasscodeSubmitKey(key_code, the_organisation)
             }
         }
 
         whenPasscodeFailed = {
             PasswordEditText.setError("That didn't work")
+            keyPasswordEditText.setError("Recheck this code and retry")
         }
 
         return va
@@ -80,7 +87,9 @@ class OrganisationPasscode : Fragment() {
     }
 
     interface OrganisationPasscodeInterface{
-        fun onOrganisationPasscodeSubmitPasscode(code: String, organisation: Organisation)
+        fun onOrganisationPasscodeSubmitPasscode(code: String, organisation: Organisation, key_code: String)
+
+        fun onOrganisationKeyPasscodeSubmitKey(key_code: String, organisation: Organisation)
     }
 
 }

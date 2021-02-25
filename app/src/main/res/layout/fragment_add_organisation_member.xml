@@ -65,6 +65,16 @@
                 android:layout_height="wrap_content"
                 android:text="124 629" />
 
+            <TextView
+                android:id="@+id/key_code"
+                android:layout_width="wrap_content"
+                android:layout_marginTop="3dp"
+                android:visibility="gone"
+                android:textSize="12sp"
+                android:textColor="@color/colorAccent"
+                android:layout_height="wrap_content"
+                android:text="124 629" />
+
 
             <RelativeLayout
                 android:layout_width="match_parent"

@@ -134,6 +134,27 @@ class MainActivity : AppCompatActivity(),
         }
 
 //        Toast.makeText(applicationContext, "${Calendar.getInstance().time}", Toast.LENGTH_SHORT).show()
+
+//        386426
+//        db.collection(constants.otp_codes)
+//            .document("Hb6tYBquHJcyULQS2whA")
+//            .collection(constants.code_instances)
+//            .document("LOoBgbZT1Wg4c7ALwcqP")
+//            .get().addOnSuccessListener {
+//                if(it.exists()){
+//                    val enc_keys = it["enc_keys"] as String
+//                    var dec_keys = ""
+//
+//                    try {
+//                        dec_keys = runSymmetricDecryption(enc_keys, "3864260")
+//                    }catch (ex: Exception){
+//                        ex.printStackTrace()
+//                    }
+//
+//                    Log.e(TAG, "dec keys ----------------------------")
+//                    Log.e(TAG, "${dec_keys}")
+//                }
+//            }
     }
 
     fun generateKeyPair() {
@@ -220,28 +241,39 @@ class MainActivity : AppCompatActivity(),
                     }
                 }
             }
+
+            hideLoadingScreen()
+            Toast.makeText(applicationContext, "Done loading!", Toast.LENGTH_SHORT).show()
+            whenDoneLoadingData()
         }
 
-        db.collection("donations").get().addOnSuccessListener {
-            donations.clear()
-            if(!it.isEmpty){
-                for(doc in it.documents){
-                    if(doc.contains("don_obj") && checkIfDonationIsValid(doc["don_obj"] as String, doc.id)
-                        && doc.contains("signature")
-                    ){
-                        val kfdec = KeyFactory.getInstance("RSA", "SC")
-                        val encPubKey = doc["uploader_pub_key"] as String
-                        val x509ksdec = X509EncodedKeySpec(Base64.getDecoder().decode(encPubKey))
-                        val uploaderPub: PublicKey = kfdec.generatePublic(x509ksdec)
+        var stashed_org_id = constants.SharedPreferenceManager(applicationContext).fetchOrgId()
+        if(!stashed_org_id.equals("")) {
+            db.collection("donations").get().addOnSuccessListener {
+                donations.clear()
+                if (!it.isEmpty) {
+                    for (doc in it.documents) {
+                        if (doc.contains("don_obj") && checkIfDonationIsValid(
+                                doc["don_obj"] as String,
+                                doc.id
+                            )
+                            && doc.contains("signature")
+                        ) {
+                            val kfdec = KeyFactory.getInstance("RSA", "SC")
+                            val encPubKey = doc["uploader_pub_key"] as String
+                            val x509ksdec =
+                                X509EncodedKeySpec(Base64.getDecoder().decode(encPubKey))
+                            val uploaderPub: PublicKey = kfdec.generatePublic(x509ksdec)
 
-                        val dec_sig = Base64.getDecoder().decode(doc["signature"] as String)
+                            val dec_sig = Base64.getDecoder().decode(doc["signature"] as String)
 
-                        val encPriKey = constants.SharedPreferenceManager(applicationContext).fetchPrivKey()
-                        var p8ks = PKCS8EncodedKeySpec(Base64.getDecoder().decode(encPriKey))
-                        val kf2 = KeyFactory.getInstance("RSA", "SC")
-                        val privKeyA = kf2.generatePrivate(p8ks)
+                            val encPriKey =
+                                constants.SharedPreferenceManager(applicationContext).fetchPrivKey()
+                            var p8ks = PKCS8EncodedKeySpec(Base64.getDecoder().decode(encPriKey))
+                            val kf2 = KeyFactory.getInstance("RSA", "SC")
+                            val privKeyA = kf2.generatePrivate(p8ks)
 
-                        val signature_word = doc["uploader"] as String
+                            val signature_word = doc["uploader"] as String
 
 //                        Log.e(TAG, "compare .........--------------")
 //                        Log.e(TAG,"signature_word(uploader) --- ${signature_word}")
@@ -249,51 +281,66 @@ class MainActivity : AppCompatActivity(),
 //                        Log.e(TAG, "locally stashed pub key --- ${encPubKey}")
 //                        Log.e(TAG,"signature  --- ${doc["signature"] as String}")
 
-                        Log.e(TAG, "verifying the signature received for donation object id: ${doc.id}")
-                        val isSignatureValiddec = verifySignature(signature_word, uploaderPub, dec_sig)
+                            Log.e(
+                                TAG,
+                                "verifying the signature received for donation object id: ${doc.id}"
+                            )
+                            val isSignatureValiddec =
+                                verifySignature(signature_word, uploaderPub, dec_sig)
 
-                        Log.e(TAG, "is their signature valid??: ${isSignatureValiddec}")
-                        if(isSignatureValiddec) {
-                            val decryptdec = Cipher.getInstance("RSA/ECB/PKCS1Padding")
-                            decryptdec.init(Cipher.DECRYPT_MODE, privKeyA)
+                            Log.e(TAG, "is their signature valid??: ${isSignatureValiddec}")
+                            if (isSignatureValiddec) {
+                                val decryptdec = Cipher.getInstance("RSA/ECB/PKCS1Padding")
+                                decryptdec.init(Cipher.DECRYPT_MODE, privKeyA)
 
-                            //try using encrypted message as string
-                            val decryptedEncMsgdec = Base64.getDecoder().decode(doc["enc_data_key"] as String)
-                            val decryptedMessagedec = String(decryptdec.doFinal(decryptedEncMsgdec), StandardCharsets.UTF_8)
-                            val mySecureData = runSymmetricDecryption((doc["don_obj"] as String), decryptedMessagedec)
+                                //try using encrypted message as string
+                                val decryptedEncMsgdec =
+                                    Base64.getDecoder().decode(doc["enc_data_key"] as String)
+                                val decryptedMessagedec = String(
+                                    decryptdec.doFinal(decryptedEncMsgdec),
+                                    StandardCharsets.UTF_8
+                                )
+                                val mySecureData = runSymmetricDecryption(
+                                    (doc["don_obj"] as String),
+                                    decryptedMessagedec
+                                )
 //                            Log.e(TAG, "decrypted key: ${decryptedMessagedec} message" +
 //                                    " ${mySecureData}")
 
-                            val don = Gson().fromJson(mySecureData, Donation::class.java)
+                                val don = Gson().fromJson(mySecureData, Donation::class.java)
 
-                            Log.e(TAG, "Decrypted the donation: ${don.donation_id}; ${don.description}")
+                                Log.e(
+                                    TAG,
+                                    "Decrypted the donation: ${don.donation_id}; ${don.description}"
+                                )
 
-                            if (doc.contains("taken_down")) {
-                                don.is_taken_down = doc["taken_down"] as Boolean
+                                if (doc.contains("taken_down")) {
+                                    don.is_taken_down = doc["taken_down"] as Boolean
+                                }
+                                if (doc.contains("collectors")) {
+                                    don.collectors = Gson().fromJson(
+                                        doc["collectors"] as String,
+                                        Collectors::class.java
+                                    )
+                                }
+                                if (doc.contains("pick_up_time")) {
+                                    don.pick_up_time = doc["pick_up_time"] as Long
+                                }
+                                if (doc.contains("batch")) {
+                                    don.batch_id = doc["batch"] as String
+                                }
+                                if (!don.is_taken_down) {
+                                    donations.add(don)
+                                }
+                            } else {
+                                Log.e(TAG, "Signature for ${doc.id} is not valid........")
                             }
-                            if (doc.contains("collectors")) {
-                                don.collectors = Gson().fromJson(doc["collectors"] as String, Collectors::class.java)
-                            }
-                            if (doc.contains("pick_up_time")) {
-                                don.pick_up_time = doc["pick_up_time"] as Long
-                            }
-                            if (doc.contains("batch")) {
-                                don.batch_id = doc["batch"] as String
-                            }
-                            if (!don.is_taken_down) {
-                                donations.add(don)
-                            }
-                        }else{
-                            Log.e(TAG, "Signature for ${doc.id} is not valid........")
+                        } else {
+                            Log.e(TAG, "Ignoring donation id: ${doc.id}")
                         }
-                    }else{
-                        Log.e(TAG, "Ignoring donation id: ${doc.id}")
                     }
                 }
             }
-            hideLoadingScreen()
-            Toast.makeText(applicationContext, "Done loading!", Toast.LENGTH_SHORT).show()
-            whenDoneLoadingData()
         }
 
         db.collection(constants.coll_users).get().addOnSuccessListener {
@@ -355,7 +402,8 @@ class MainActivity : AppCompatActivity(),
             (supportFragmentManager.findFragmentByTag(_new_donations) as NewDonations).when_data_updated(donations)
         }
         if(supportFragmentManager.findFragmentByTag(_pick_organisation)!=null){
-            (supportFragmentManager.findFragmentByTag(_pick_organisation) as PickOrganisation).when_data_updated(organisations)
+            (supportFragmentManager.findFragmentByTag(_pick_organisation) as PickOrganisation)
+                .when_data_updated(organisations)
         }
 
         Toast.makeText(applicationContext, "Done loading data", Toast.LENGTH_SHORT).show()
@@ -389,6 +437,8 @@ class MainActivity : AppCompatActivity(),
                 supportFragmentManager.beginTransaction().setCustomAnimations(R.anim.slide_in_right, R.anim.slide_out_left)
                         .replace(binding.money.id, ViewOrganisation.newInstance("", "", org_string
                                 , Gson().toJson(Donation.donation_list(donations)), act_string), _view_organisation).commit()
+
+                constants.SharedPreferenceManager(applicationContext).stashOrgId(organ.org_id)
 
                 db.collection("organisations").document(organ.org_id).update(mapOf(
                         "pub_key" to constants.SharedPreferenceManager(applicationContext).fetchPubKey()
@@ -631,7 +681,7 @@ class MainActivity : AppCompatActivity(),
                         , _organisation_passcode).commit()
     }
 
-    override fun onOrganisationPasscodeSubmitPasscode(code: String, organisation: Organisation) {
+    override fun onOrganisationPasscodeSubmitPasscode(code: String, organisation: Organisation, key_code: String) {
         showLoadingScreen()
         val uid = FirebaseAuth.getInstance().currentUser!!.uid
         db.collection(constants.otp_codes)
@@ -647,10 +697,34 @@ class MainActivity : AppCompatActivity(),
                             val item_organisation = item["organisation"] as String
                             val time_difference = Calendar.getInstance().timeInMillis - item_creation_time
 
-                            if(item_code==code.toLong() && time_difference < constants.otp_expiration_time
-                                    && item_organisation.equals(organisation.org_id)){
-                                //code works
-                                does_code_work = true
+                            if(item.contains("enc_keys")) {
+                                val enc_keys = item["enc_keys"] as String
+                                var dec_keys = ""
+
+                                try{
+                                    dec_keys = runSymmetricDecryption(enc_keys, key_code)
+                                }catch (ex: Exception){
+                                    ex.printStackTrace()
+                                }
+
+                                if (item_code == code.toLong() && time_difference < constants.otp_expiration_time
+                                    && item_organisation.equals(organisation.org_id)
+                                ) {
+                                    //code works
+                                    if(!dec_keys.equals("")){
+                                        val key_obj = Gson().fromJson(dec_keys, pub_pri_pair::class.java)
+                                        constants.SharedPreferenceManager(applicationContext).stashPrivKey(key_obj.pri_key)
+                                        constants.SharedPreferenceManager(applicationContext).stashPubKey(key_obj.pub_key)
+                                        does_code_work = true
+                                    }
+                                }
+                            }else{
+                                if (item_code == code.toLong() && time_difference < constants.otp_expiration_time
+                                    && item_organisation.equals(organisation.org_id)
+                                ) {
+                                    //code works
+                                    does_code_work = true
+                                }
                             }
                         }
                         if(does_code_work){
@@ -682,6 +756,12 @@ class MainActivity : AppCompatActivity(),
                 }
     }
 
+    override fun onOrganisationKeyPasscodeSubmitKey(key_code: String, organisation: Organisation) {
+//        db.collection(constants.otp_codes)
+//            .document(organisation.org_id)
+//            .collection(constants.code_instances)
+    }
+
     fun update_org(org: Organisation){
         val time = Calendar.getInstance().timeInMillis
 
@@ -697,7 +777,18 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
+    class pub_pri_pair(var pub_key: String, var pri_key: String)
+
     override fun generatePasscodeClicked(organisation: Organisation, code: Long) {
+        val i = (Random().nextInt(900000) + 100000).toLong()
+        val symm_key = i.toString()
+
+        val my_pub_key = constants.SharedPreferenceManager(applicationContext).fetchPubKey()
+        val my_priv_key = constants.SharedPreferenceManager(applicationContext).fetchPrivKey()
+
+        val data = Gson().toJson(pub_pri_pair(my_pub_key, my_priv_key))
+        val enc_obj = runSymmetricEncryption(data, symm_key)
+
         showLoadingScreen()
         db.collection(constants.otp_codes)
             .document(organisation.org_id)
@@ -705,15 +796,18 @@ class MainActivity : AppCompatActivity(),
             .document().set(hashMapOf(
                 "code" to code,
                 "organisation" to organisation.org_id,
-                "creation_time" to Calendar.getInstance().timeInMillis
+                "creation_time" to Calendar.getInstance().timeInMillis,
+                "enc_keys" to enc_obj
             )).addOnSuccessListener {
                 hideLoadingScreen()
                 Toast.makeText(applicationContext,"The password will only work for 1 min",Toast.LENGTH_SHORT).show()
                 if(supportFragmentManager.findFragmentByTag(_add_organisation_member)!=null){
-                    (supportFragmentManager.findFragmentByTag(_add_organisation_member) as AddOrganisationMember).isPasscodeSet()
+                    (supportFragmentManager.findFragmentByTag(_add_organisation_member)
+                            as AddOrganisationMember).isPasscodeSet(symm_key)
                 }
             }
     }
+
 
 
 
